@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react'
-import { ArrowLeft, Bug, Lightbulb, Zap, ChevronRight, Circle, CheckCircle2, Clock, AlertTriangle, Shield, Search, Send, Eye, EyeOff, Play, Terminal } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { ArrowLeft, Bug, Lightbulb, Zap, ChevronRight, Circle, CheckCircle2, Clock, AlertTriangle, Shield, Search, Send, Eye, EyeOff, Play, Terminal, Key, X } from 'lucide-react'
 import { Ticket, tickets, stages, getStageIndex, getConfidenceColor, getSeverityColor, expertAgents, terminalSessions } from '../data'
+import { useClaudeTerminal } from '../useClaudeTerminal'
 
 interface DetailViewProps {
   ticket: Ticket;
@@ -98,15 +99,63 @@ function StageTracker({ currentStage }: { currentStage: string }) {
   )
 }
 
+function ApiKeyModal({ onClose, onSave }: { onClose: () => void; onSave: (key: string) => void }) {
+  const [keyValue, setKeyValue] = useState('')
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center" onClick={onClose}>
+      <div className="bg-surface-1 border border-border rounded-lg p-6 w-[420px] shadow-xl" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Key size={16} className="text-accent-green" />
+            <h3 className="text-[14px] font-semibold text-text-primary">Connect Claude API</h3>
+          </div>
+          <button onClick={onClose} className="text-text-tertiary hover:text-text-primary bg-transparent border-none cursor-pointer">
+            <X size={14} />
+          </button>
+        </div>
+        <p className="text-[12px] text-text-secondary mb-4 leading-relaxed">
+          Enter your Anthropic API key to power the terminal with real Claude responses. Your key is stored locally and never sent to our servers.
+        </p>
+        <input
+          type="password"
+          value={keyValue}
+          onChange={e => setKeyValue(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && keyValue.trim()) { onSave(keyValue.trim()); onClose() } }}
+          placeholder="sk-ant-api03-..."
+          className="w-full bg-surface-2 border border-border rounded px-3 py-2 text-[12px] font-mono text-text-primary placeholder:text-text-tertiary outline-none focus:border-accent-green mb-4"
+          autoFocus
+        />
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] text-text-tertiary">Uses claude-sonnet-4-20250514</span>
+          <button
+            onClick={() => { if (keyValue.trim()) { onSave(keyValue.trim()); onClose() } }}
+            disabled={!keyValue.trim()}
+            className="text-[12px] bg-accent-green text-surface-0 px-4 py-1.5 rounded font-medium hover:bg-accent-green-dim transition-colors border-none cursor-pointer disabled:opacity-40"
+          >
+            Connect
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function TerminalWindow({ ticket, bildaMode }: { ticket: Ticket; bildaMode?: 'watching' | 'background' }) {
   const [visibleLines, setVisibleLines] = useState<number>(0)
   const [inputValue, setInputValue] = useState('')
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false)
+  const [hasApiKey, setHasApiKey] = useState(() => !!localStorage.getItem('rubicon-api-key'))
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const prevTicketRef = useRef(ticket.id)
   const isBilda = ticket.stage === 'bilda'
   // Bilda "watching" mode types slower to simulate real-time code writing
   const typeSpeed = isBilda && bildaMode === 'watching' ? 140 : 60
-  const lines = terminalSessions[ticket.id] || [
+
+  const { lines: liveLines, isStreaming, sendMessage, resetForTicket } = useClaudeTerminal(ticket)
+
+  // Static lines for the typing animation
+  const staticLines = terminalSessions[ticket.id] || [
     `$ claude --ticket ${ticket.id} --stage ${ticket.stage}`,
     '',
     `◆ ${stages[getStageIndex(ticket.stage)].label} Agent — Processing...`,
@@ -121,11 +170,26 @@ function TerminalWindow({ ticket, bildaMode }: { ticket: Ticket; bildaMode?: 'wa
     '  ⏳ Checking test coverage...',
   ]
 
+  // Track whether user has started interacting (live mode)
+  const [isLive, setIsLive] = useState(false)
+
+  // Reset when ticket changes
   useEffect(() => {
+    if (prevTicketRef.current !== ticket.id) {
+      prevTicketRef.current = ticket.id
+      setVisibleLines(0)
+      setIsLive(false)
+      resetForTicket(ticket)
+    }
+  }, [ticket.id, ticket, resetForTicket])
+
+  // Typing animation for static lines
+  useEffect(() => {
+    if (isLive) return
     setVisibleLines(0)
     const timer = setInterval(() => {
       setVisibleLines(prev => {
-        if (prev >= lines.length) {
+        if (prev >= staticLines.length) {
           clearInterval(timer)
           return prev
         }
@@ -133,13 +197,29 @@ function TerminalWindow({ ticket, bildaMode }: { ticket: Ticket; bildaMode?: 'wa
       })
     }, typeSpeed)
     return () => clearInterval(timer)
-  }, [ticket.id, lines.length, typeSpeed])
+  }, [ticket.id, staticLines.length, typeSpeed, isLive])
 
+  // Auto-scroll
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [visibleLines])
+  }, [visibleLines, liveLines.length])
+
+  const handleSubmit = useCallback(async () => {
+    const val = inputValue.trim()
+    if (!val) return
+    if (!hasApiKey) {
+      setShowApiKeyModal(true)
+      return
+    }
+    setInputValue('')
+    setIsLive(true)
+    await sendMessage(val)
+  }, [inputValue, hasApiKey, sendMessage])
+
+  const displayLines = isLive ? liveLines : staticLines.slice(0, visibleLines)
+  const showCursor = isLive ? !isStreaming : visibleLines >= staticLines.length
 
   const renderLine = (line: string) => {
     // Claude-style thinking block
@@ -182,80 +262,125 @@ function TerminalWindow({ ticket, bildaMode }: { ticket: Ticket; bildaMode?: 'wa
   }
 
   return (
-    <div className="flex flex-col h-full bg-terminal-bg rounded-lg border border-border overflow-hidden" onClick={() => inputRef.current?.focus()}>
-      {/* Claude-style Terminal Header */}
-      <div className="flex items-center justify-between px-3 py-2 bg-surface-2 border-b border-border">
-        <div className="flex items-center gap-2">
-          <div className="flex gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-accent-red/70" />
-            <div className="w-2.5 h-2.5 rounded-full bg-accent-amber/70" />
-            <div className="w-2.5 h-2.5 rounded-full bg-accent-green/70" />
+    <>
+      {showApiKeyModal && (
+        <ApiKeyModal
+          onClose={() => setShowApiKeyModal(false)}
+          onSave={(key) => {
+            localStorage.setItem('rubicon-api-key', key)
+            setHasApiKey(true)
+          }}
+        />
+      )}
+      <div className="flex flex-col h-full bg-terminal-bg rounded-lg border border-border overflow-hidden" onClick={() => inputRef.current?.focus()}>
+        {/* Claude-style Terminal Header */}
+        <div className="flex items-center justify-between px-3 py-2 bg-surface-2 border-b border-border">
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-accent-red/70" />
+              <div className="w-2.5 h-2.5 rounded-full bg-accent-amber/70" />
+              <div className="w-2.5 h-2.5 rounded-full bg-accent-green/70" />
+            </div>
+            <span className="text-[11px] text-text-tertiary font-mono ml-2">
+              claude — {ticket.id} — {stages[getStageIndex(ticket.stage)].label}
+            </span>
           </div>
-          <span className="text-[11px] text-text-tertiary font-mono ml-2">
-            claude — {ticket.id} — {stages[getStageIndex(ticket.stage)].label}
-          </span>
+          <div className="flex items-center gap-2 text-[10px] text-text-tertiary">
+            <span className="px-1.5 py-0.5 rounded bg-accent-purple/10 text-accent-purple border border-accent-purple/20 font-medium">
+              claude-sonnet-4-6
+            </span>
+            {hasApiKey ? (
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowApiKeyModal(true) }}
+                className="px-1.5 py-0.5 rounded bg-accent-green/10 text-accent-green border border-accent-green/20 cursor-pointer font-medium hover:bg-accent-green/20 transition-colors"
+                title="API key configured — click to change"
+              >
+                {isStreaming ? (
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent-green" style={{ animation: 'pulse-dot 0.8s ease-in-out infinite' }} />
+                    streaming
+                  </span>
+                ) : '● live'}
+              </button>
+            ) : (
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowApiKeyModal(true) }}
+                className="px-1.5 py-0.5 rounded bg-accent-amber/10 text-accent-amber border border-accent-amber/20 cursor-pointer font-medium hover:bg-accent-amber/20 transition-colors flex items-center gap-1"
+              >
+                <Key size={9} />
+                connect API
+              </button>
+            )}
+            {isBilda && bildaMode === 'watching' ? (
+              <span className="px-1.5 py-0.5 rounded bg-accent-green/10 text-accent-green border border-accent-green/20 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-accent-green" style={{ animation: 'pulse-dot 1s ease-in-out infinite' }} />
+                building live
+              </span>
+            ) : isBilda && bildaMode === 'background' ? (
+              <span className="px-1.5 py-0.5 rounded bg-accent-amber/10 text-accent-amber border border-accent-amber/20 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-accent-amber" style={{ animation: 'pulse-dot 2s ease-in-out infinite' }} />
+                background
+              </span>
+            ) : null}
+          </div>
         </div>
-        <div className="flex items-center gap-2 text-[10px] text-text-tertiary">
-          <span className="px-1.5 py-0.5 rounded bg-accent-purple/10 text-accent-purple border border-accent-purple/20 font-medium">
-            claude-opus-4-6
-          </span>
-          {isBilda && bildaMode === 'watching' ? (
-            <span className="px-1.5 py-0.5 rounded bg-accent-green/10 text-accent-green border border-accent-green/20 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-accent-green" style={{ animation: 'pulse-dot 1s ease-in-out infinite' }} />
-              building live
-            </span>
-          ) : isBilda && bildaMode === 'background' ? (
-            <span className="px-1.5 py-0.5 rounded bg-accent-amber/10 text-accent-amber border border-accent-amber/20 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-accent-amber" style={{ animation: 'pulse-dot 2s ease-in-out infinite' }} />
-              background
-            </span>
-          ) : (
-            <span className="px-1.5 py-0.5 rounded bg-accent-green/10 text-accent-green border border-accent-green/20">
-              ● connected
-            </span>
+
+        {/* Terminal Content */}
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 font-mono text-[12px] leading-relaxed">
+          {displayLines.map((line, i) => (
+            <div key={`${isLive ? 'live' : 'static'}-${i}`} className="min-h-[1.2em]">
+              {renderLine(line)}
+            </div>
+          ))}
+          {isStreaming && (
+            <div className="min-h-[1.2em]">
+              <span className="terminal-cursor" />
+            </div>
+          )}
+          {showCursor && !isStreaming && (
+            <div className="mt-1">
+              <span className="text-terminal-green">❯</span>{' '}
+              <span className="terminal-cursor" />
+            </div>
           )}
         </div>
-      </div>
 
-      {/* Terminal Content */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 font-mono text-[12px] leading-relaxed">
-        {lines.slice(0, visibleLines).map((line, i) => (
-          <div key={i} className="min-h-[1.2em]">
-            {renderLine(line)}
+        {/* Claude-style Input Bar */}
+        <div className="border-t border-border bg-surface-2/50 px-3 py-2">
+          <div className="flex items-center gap-2">
+            <span className="text-terminal-green text-[12px] font-mono">❯</span>
+            <input
+              ref={inputRef}
+              type="text"
+              value={inputValue}
+              onChange={e => setInputValue(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleSubmit() }}
+              placeholder={hasApiKey ? "Ask Claude about this ticket..." : "Connect API key to interact..."}
+              className="flex-1 bg-transparent border-none outline-none text-[12px] font-mono text-text-primary placeholder:text-text-tertiary"
+              disabled={isStreaming}
+            />
+            <button
+              onClick={handleSubmit}
+              disabled={isStreaming || !inputValue.trim()}
+              className="text-text-tertiary hover:text-accent-green transition-colors bg-transparent border-none cursor-pointer p-0.5 disabled:opacity-30"
+            >
+              <Send size={12} />
+            </button>
           </div>
-        ))}
-        {visibleLines >= lines.length && (
-          <div className="mt-1">
-            <span className="text-terminal-green">❯</span>{' '}
-            <span className="terminal-cursor" />
+          <div className="flex items-center gap-3 mt-1 text-[9px] text-text-tertiary">
+            {hasApiKey ? (
+              <>
+                <span>Enter to send</span>
+                <span>Claude responds with ticket context</span>
+                {isLive && <span className="text-accent-green">● live mode</span>}
+              </>
+            ) : (
+              <span>Click "connect API" in header to enable live Claude responses</span>
+            )}
           </div>
-        )}
-      </div>
-
-      {/* Claude-style Input Bar */}
-      <div className="border-t border-border bg-surface-2/50 px-3 py-2">
-        <div className="flex items-center gap-2">
-          <span className="text-terminal-green text-[12px] font-mono">❯</span>
-          <input
-            ref={inputRef}
-            type="text"
-            value={inputValue}
-            onChange={e => setInputValue(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && inputValue.trim()) setInputValue('') }}
-            placeholder="Ask Claude about this ticket..."
-            className="flex-1 bg-transparent border-none outline-none text-[12px] font-mono text-text-primary placeholder:text-text-tertiary"
-          />
-          <button className="text-text-tertiary hover:text-accent-green transition-colors bg-transparent border-none cursor-pointer p-0.5">
-            <Send size={12} />
-          </button>
-        </div>
-        <div className="flex items-center gap-3 mt-1 text-[9px] text-text-tertiary">
-          <span>⌘K commands</span>
-          <span>↑↓ history</span>
-          <span>Tab autocomplete</span>
         </div>
       </div>
-    </div>
+    </>
   )
 }
 
