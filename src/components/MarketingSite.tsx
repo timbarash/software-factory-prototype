@@ -1,10 +1,12 @@
-import { ArrowLeft, Zap, GitBranch, Eye, Shield, Brain, Terminal, Users, TrendingUp, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, Zap, GitBranch, Eye, Shield, Brain, Terminal, Users, TrendingUp, CheckCircle2, Play } from 'lucide-react'
 
 interface MarketingSiteProps {
   onBack: () => void;
+  onWalkthrough: () => void;
 }
 
-export function MarketingSite({ onBack }: MarketingSiteProps) {
+export function MarketingSite({ onBack, onWalkthrough }: MarketingSiteProps) {
+
   return (
     <div className="h-screen w-screen bg-surface-0 overflow-y-auto">
       {/* Nav */}
@@ -23,7 +25,7 @@ export function MarketingSite({ onBack }: MarketingSiteProps) {
               <div className="w-6 h-6 rounded bg-accent-green flex items-center justify-center">
                 <Zap size={14} color="#000" />
               </div>
-              <span className="text-[15px] font-semibold tracking-tight">Software Factory</span>
+              <span className="text-[15px] font-semibold tracking-tight">Rubicon</span>
             </div>
           </div>
           <button
@@ -47,7 +49,7 @@ export function MarketingSite({ onBack }: MarketingSiteProps) {
             <span className="text-accent-green">with agents that think.</span>
           </h1>
           <p className="text-[16px] text-text-secondary leading-relaxed max-w-xl mx-auto mb-8">
-            Software Factory orchestrates four specialized AI agents through your entire SDLC — from context gathering to merge. Every bug and feature request gets triaged, planned, built, and QA'd with persistent expert oversight.
+            Rubicon orchestrates four specialized AI agents through your entire SDLC — from context gathering to merge. Every bug and feature request gets triaged, planned, built, and QA'd with persistent expert oversight.
           </p>
           <div className="flex items-center justify-center gap-4">
             <button
@@ -56,9 +58,13 @@ export function MarketingSite({ onBack }: MarketingSiteProps) {
             >
               See it in action →
             </button>
-            <a href="#how-it-works" className="text-[13px] text-text-secondary hover:text-text-primary transition-colors no-underline">
-              How it works ↓
-            </a>
+            <button
+              onClick={onWalkthrough}
+              className="text-[13px] text-text-secondary hover:text-text-primary transition-colors border border-border hover:border-border-bright rounded-md px-5 py-2.5 bg-surface-1 cursor-pointer flex items-center gap-2"
+            >
+              <Play size={13} className="text-accent-green" />
+              Watch the Walkthrough
+            </button>
           </div>
         </div>
       </section>
@@ -168,7 +174,7 @@ export function MarketingSite({ onBack }: MarketingSiteProps) {
               { name: 'Design Lead', desc: 'VP-level design review. Linear-inspired patterns, dark-first theming, keyboard-first UX, agent UI patterns.', icon: '◆', color: '#a855f7' },
               { name: 'QA Engineer', desc: 'Edge cases, error states, accessibility, cross-browser. Tests what agents build.', icon: '◇', color: '#06b6d4' },
               { name: 'SWE', desc: 'Code readability, maintainability, pattern consistency. The "will I maintain this?" gut check.', icon: '⬡', color: '#3b82f6' },
-              { name: 'Ops SME', desc: 'Deployment risk, audit trails, rate limits, rollback strategies, monitoring.', icon: '◈', color: '#f59e0b' },
+              { name: 'Cannabiz SME', desc: 'Industry context — how bugs and features impact real dispensaries, brands, and compliance workflows.', icon: '◈', color: '#f59e0b' },
               { name: 'Architect', desc: 'System design, performance, type safety, React/Go patterns, security review.', icon: '⬢', color: '#22c55e' },
               { name: 'Product Marketing', desc: 'Positioning, messaging, developer experience. How does this feature tell your story?', icon: '◉', color: '#ef4444' },
             ].map(agent => (
@@ -225,7 +231,7 @@ export function MarketingSite({ onBack }: MarketingSiteProps) {
             onClick={onBack}
             className="text-[13px] bg-accent-green text-surface-0 px-8 py-3 rounded-md font-medium hover:bg-accent-green-dim transition-colors border-none cursor-pointer"
           >
-            Open Software Factory →
+            Open Rubicon →
           </button>
         </div>
       </section>
@@ -237,7 +243,7 @@ export function MarketingSite({ onBack }: MarketingSiteProps) {
             <div className="w-4 h-4 rounded bg-accent-green flex items-center justify-center">
               <Zap size={10} color="#000" />
             </div>
-            <span>Software Factory</span>
+            <span>Rubicon</span>
             <span className="text-text-tertiary/50">|</span>
             <span>AI-Native SDLC</span>
           </div>

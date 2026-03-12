@@ -5,6 +5,7 @@ interface HotlistProps {
   tickets: Ticket[];
   onSelectTicket: (id: string) => void;
   onShowMarketing: () => void;
+  onShowReview: () => void;
 }
 
 function AgentDots({ agents }: { agents: Ticket['agents'] }) {
@@ -132,7 +133,7 @@ function TicketCard({ ticket, onClick }: { ticket: Ticket; onClick: () => void }
   )
 }
 
-export function Hotlist({ tickets, onSelectTicket, onShowMarketing }: HotlistProps) {
+export function Hotlist({ tickets, onSelectTicket, onShowMarketing, onShowReview }: HotlistProps) {
   const sorted = [...tickets].sort((a, b) => {
     const sevOrder = { critical: 0, high: 1, medium: 2, low: 3 }
     if (sevOrder[a.severity] !== sevOrder[b.severity]) return sevOrder[a.severity] - sevOrder[b.severity]
@@ -151,7 +152,7 @@ export function Hotlist({ tickets, onSelectTicket, onShowMarketing }: HotlistPro
             <div className="w-6 h-6 rounded bg-accent-green flex items-center justify-center">
               <Zap size={14} color="#000" />
             </div>
-            <span className="text-[15px] font-semibold text-text-primary tracking-tight">Software Factory</span>
+            <span className="text-[15px] font-semibold text-text-primary tracking-tight">Rubicon</span>
           </div>
           <span className="text-[11px] text-text-tertiary px-2 py-0.5 rounded bg-surface-3 border border-border">
             Next Logical Action
@@ -205,12 +206,20 @@ export function Hotlist({ tickets, onSelectTicket, onShowMarketing }: HotlistPro
 
       {/* Footer */}
       <div className="px-6 py-2 border-t border-border bg-surface-1 flex items-center justify-between text-[11px] text-text-tertiary">
-        <button
-          onClick={onShowMarketing}
-          className="hover:text-accent-green transition-colors cursor-pointer bg-transparent border-none text-[11px] text-text-tertiary p-0"
-        >
-          Why Software Factory? →
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={onShowMarketing}
+            className="hover:text-accent-green transition-colors cursor-pointer bg-transparent border-none text-[11px] text-text-tertiary p-0"
+          >
+            Why Rubicon? →
+          </button>
+          <button
+            onClick={onShowReview}
+            className="hover:text-accent-green transition-colors cursor-pointer bg-transparent border-none text-[11px] text-text-tertiary p-0"
+          >
+            Agent Gang Thoughts on Rubicon →
+          </button>
+        </div>
         <div className="flex items-center gap-4">
           <span>Agents: 4 active</span>
           <span>Queue refresh: 30s</span>

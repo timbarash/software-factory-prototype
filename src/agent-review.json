@@ -1,0 +1,381 @@
+{
+  "reviewDate": "2026-03-12",
+  "agents": [
+    {
+      "name": "Design Lead",
+      "icon": "\u25c6",
+      "color": "#a855f7",
+      "verdict": "Strong Linear-inspired foundation with excellent dark-first theming, but the agent orchestration UX is still showing tickets instead of showing work happening.",
+      "score": 78,
+      "strengths": [
+        "Dark theme execution is excellent \u2014 the 5-tier surface system (surface-0 through surface-4) creates clear elevation hierarchy without harsh contrast, and the OKLCH-adjacent color tokens feel intentional, not templated.",
+        "Terminal-centered detail view is a genuinely novel layout decision \u2014 putting Claude Code output at the center with agent panels flanking it communicates that the AI is doing the work, not just advising on it.",
+        "Information density on the Hotlist is well-calibrated for the developer audience \u2014 severity badges, agent readiness dots, confidence scores, stage progress, and labels all fit without clutter. The sorting by severity-then-confidence is opinionated and correct."
+      ],
+      "concerns": [
+        "The agent panel in the detail view uses accordion-style expand/collapse for expert thoughts, but each agent only shows 2-4 static text strings \u2014 there is no sense of agents actively working. Linear's approach to showing real-time activity (streaming updates, typing indicators) would make the expert agents feel alive instead of like pre-rendered tooltips.",
+        "No command palette (Cmd+K) exists despite the search bar placeholder in the header showing a '/' shortcut hint. For a tool positioning itself as keyboard-first and Linear-inspired, the absence of the single most important power-user interaction pattern is a significant gap."
+      ],
+      "featureIdeas": [
+        {
+          "title": "Agent Thought Stream",
+          "description": "Replace the static accordion thoughts with a real-time streaming thought feed. Each expert agent's panel should show thoughts appearing token-by-token as they analyze the ticket, with timestamps and confidence indicators. This transforms the right panel from a reference card into a live collaboration view, similar to how Claude Code shows reasoning steps."
+        },
+        {
+          "title": "Confidence Sparklines",
+          "description": "Add tiny sparkline charts next to each ticket's confidence score showing how confidence has changed over time as agents progress through stages. A ticket whose confidence is rising fast signals momentum; one that's plateaued signals a blocker. This adds temporal context to a currently static number."
+        },
+        {
+          "title": "Stage Transition Animations",
+          "description": "When a ticket moves between SDLC stages, animate the transition in the stage tracker with a micro-celebration \u2014 the completed stage dot fills with a satisfying green pulse, connecting lines draw themselves, and the next agent's panel highlights. Make progress feel tangible, like Linear's issue status transitions."
+        },
+        {
+          "title": "Split-Terminal View for Agent Comparison",
+          "description": "Allow users to split the center terminal view to show two agents working simultaneously \u2014 for example, Contexta gathering requirements on the left while Plana drafts architecture on the right. This reveals the pipeline nature of the tool and lets humans spot disagreements between agents before they cascade downstream."
+        }
+      ]
+    },
+    {
+      "name": "QA Engineer",
+      "icon": "\u25c7",
+      "color": "#06b6d4",
+      "verdict": "The prototype demonstrates the happy path well but has zero error handling, no loading states, no empty states, and no edge case coverage \u2014 exactly the states a production SDLC tool will hit constantly.",
+      "score": 52,
+      "strengths": [
+        "The terminal animation with line-by-line reveal and auto-scroll is smooth and handles the full content well \u2014 tested with both short (generic fallback) and long (PF-1247, BUG-892) terminal sessions without layout breakage.",
+        "The Hotlist sorting logic correctly prioritizes critical bugs over high-severity features and uses confidence as a secondary sort, which means the most urgent AND most actionable items surface first \u2014 a thoughtful default that reduces triage decisions.",
+        "Color coding is consistent across all components \u2014 the getConfidenceColor, getSeverityColor, and getHumanInputColor utility functions enforce a single source of truth for status colors, preventing the classic bug where 'red' means different things on different screens."
+      ],
+      "concerns": [
+        "There are no loading, error, or empty states anywhere in the application. What happens when the ticket list is empty? What if the terminal session data is missing for a ticket (it falls back to generic lines, but the user has no way to know this is a fallback)? A production SDLC tool ingesting real bugs will absolutely encounter partial data, API failures, and network timeouts \u2014 and right now every one of those scenarios would show a blank screen or crash.",
+        "The MiniHotlist component in DetailView hardcodes `tickets.slice(0, 5)` which means it always shows the first 5 tickets from the import, ignoring the severity-based sorting used in the main Hotlist. A user clicking from the sorted hotlist into a detail view sees a differently-ordered sidebar list \u2014 this inconsistency will confuse power users who rely on spatial memory for navigation."
+      ],
+      "featureIdeas": [
+        {
+          "title": "Agent Disagreement Detector",
+          "description": "Automatically flag tickets where expert agents have contradictory assessments \u2014 for example, if the SWE agent says the fix is straightforward but the Cannabiz SME flags compliance risk. Surface these disagreements as a prominent warning badge on the ticket card. In dispensary software, a simple-looking code change can have hidden regulatory implications."
+        },
+        {
+          "title": "Confidence Regression Alerts",
+          "description": "Track confidence scores over time and alert when a ticket's confidence drops after previously increasing. This signals that an agent discovered a complication mid-work \u2014 like finding that a payment timeout fix requires changes to a PCI-compliant service boundary. Catching regressions early prevents wasted cycles."
+        },
+        {
+          "title": "Stale Ticket Watchdog",
+          "description": "Flag tickets that have been stuck at the same SDLC stage for longer than a configurable threshold (e.g., 48 hours in Contexta without human input provided). In cannabis retail, seasonal rushes like 4/20 or new state launches create time pressure \u2014 a stuck ticket with 'high human input needed' during a launch sprint is a silent blocker that needs escalation."
+        },
+        {
+          "title": "Multi-Location Test Fixture Generator",
+          "description": "For tickets tagged with multi-location or sync labels, automatically generate test scenarios covering 1-location, 3-location, and 10-location retailer configurations. The BUG-892 sync failure only affects 3+ location retailers \u2014 a tool that pre-generates the right test matrix based on ticket labels would catch these scoping issues before QA even starts manual testing."
+        }
+      ]
+    },
+    {
+      "name": "SWE",
+      "icon": "\u2b21",
+      "color": "#3b82f6",
+      "verdict": "Clean React with sensible component decomposition, but the data layer is entirely static imports with no API abstraction, making this hard to evolve into a real product without a significant refactor.",
+      "score": 65,
+      "strengths": [
+        "Component decomposition is well-structured \u2014 TicketCard, AgentDots, StageTracker, TerminalWindow, AgentPanel, and ConfidencePanel are all under 100 lines each with single responsibilities. The DetailView composes these cleanly in a three-column layout without deep prop drilling.",
+        "The data model in data.ts is well-typed with discriminated union potential \u2014 TicketType, Severity, Stage, and humanInput levels use string literal unions that enable exhaustive switch handling. The AgentAssessment interface cleanly captures the readiness/input/summary triple that drives the entire UI.",
+        "The Walkthrough component demonstrates solid React patterns \u2014 useCallback for stable function references, useRef for DOM access and mutable values, proper cleanup in useEffect returns, and the audio element stays mounted across state transitions to avoid browser autoplay restrictions. This is production-quality React."
+      ],
+      "concerns": [
+        "All data is imported as static constants from data.ts with no API layer, no fetching abstraction, and no state management beyond React's useState. The expertAgents and terminalSessions use Record<string, T> keyed by ticket ID, which means adding a new ticket requires manually adding entries to three separate objects. In production, this needs TanStack Query with a proper API client, but more importantly for the prototype, even a simple context provider would let you demonstrate optimistic updates and loading states.",
+        "The TerminalWindow component re-creates the entire line-by-line animation on every ticket.id change (the useEffect dependency), but it uses setInterval without clearing properly on rapid ticket switches. If a user clicks through tickets quickly in the MiniHotlist, multiple intervals could stack. The cleanup function clears the timer from the last render, but the state update closure captures the old lines.length, potentially causing the animation to stop at the wrong line count."
+      ],
+      "featureIdeas": [
+        {
+          "title": "Agent WebSocket Event Bus",
+          "description": "Replace the static terminal session data with a WebSocket connection that streams agent events in real-time. Each event would be typed (AgentThought, StageTransition, HumanInputRequest, ConfidenceUpdate) and rendered by the terminal as it arrives. This transforms the demo from a playback into a live system and enables the future architecture of actually connecting to Claude Code's output."
+        },
+        {
+          "title": "Ticket Dependency Graph",
+          "description": "Add a dependency field to the Ticket type and render a visual DAG showing which tickets block other tickets. In Dutchie's codebase, the order sync fix (BUG-892) likely affects the payment timeout fix (BUG-901) since both touch the order processing pipeline. Making these dependencies visible prevents engineers from shipping a fix that breaks an adjacent in-progress fix."
+        },
+        {
+          "title": "Inline Code Diff Preview",
+          "description": "When an agent in the Bilda stage references specific files, render an inline diff viewer below the terminal showing the proposed changes. Use Monaco Editor's diff view with syntax highlighting. Engineers reviewing agent output shouldn't have to switch to VS Code to see what actually changed \u2014 the review should happen where the context is."
+        }
+      ]
+    },
+    {
+      "name": "Cannabiz SME",
+      "icon": "\u25c8",
+      "color": "#f59e0b",
+      "verdict": "The prototype demonstrates real understanding of dispensary pain points (multi-location sync, bulk inventory operations, payment processing) but needs deeper integration with the compliance and regulatory systems that make cannabis tech uniquely complex.",
+      "score": 72,
+      "strengths": [
+        "The sample tickets are grounded in real dispensary operations \u2014 BUG-892 (multi-location order sync) captures the exact pain point of expanding cannabis brands, including the revenue impact ($12K/day) and specific affected account archetype (Green Leaf PDX at $40K+ MRR). These aren't generic SaaS bugs; they reflect someone who understands the dispensary tech stack.",
+        "The Cannabiz SME agent's thoughts demonstrate genuine industry knowledge \u2014 noting that bulk archive needs Metrc/BioTrack audit trails, that cross-location pricing involves different state regulations, and that delivery day inventory updates tie up budtenders for 45 minutes. These details would resonate with actual Dutchie customers.",
+        "The confidence scoring system maps well to dispensary operator trust levels \u2014 operators managing $50K+/day in transactions through Dutchie need to know whether a fix is reliable before deploying during business hours. A 91% confidence score on the payment timeout fix communicates 'safe to ship' in language operators understand."
+      ],
+      "concerns": [
+        "There is no Metrc/BioTrack integration awareness in the SDLC pipeline. Every code change that touches inventory quantities, product transfers, or sales transactions has compliance implications in cannabis. The agent pipeline (Contexta through Merge) should have a compliance checkpoint that automatically flags changes touching state-reporting codepaths \u2014 currently a human has to notice this in the Cannabiz SME's text thoughts.",
+        "The ticket data doesn't capture the multi-state complexity that makes Dutchie's engineering uniquely challenging. A retailer operating in Oregon and California faces different tax rules, product categorization requirements, purchase limits, and reporting formats. The severity/confidence model treats all tickets as single-jurisdiction, but a 'medium' severity bug in one state could be a 'critical' compliance violation in another."
+      ],
+      "featureIdeas": [
+        {
+          "title": "Compliance Ghost Agent",
+          "description": "A dedicated agent that shadows every code change through the SDLC pipeline and flags anything touching state reporting integration points (Metrc API calls, BioTrack inventory adjustments, tax calculation logic, purchase limit enforcement). This agent would maintain a map of compliance-sensitive codepaths and automatically elevate ticket severity when changes intersect with them. In cannabis, a reporting error can trigger a state audit or license suspension."
+        },
+        {
+          "title": "Jurisdiction Impact Matrix",
+          "description": "For each ticket, automatically detect which states/jurisdictions are affected based on the code paths involved. Display a matrix showing impact across Oregon, California, Colorado, Illinois, etc. A payment processing change might be fine in Oregon but violate Illinois cashless payment regulations. Engineers need to see this cross-jurisdiction impact before shipping, not after a retailer reports a compliance issue."
+        },
+        {
+          "title": "4/20 Readiness Score",
+          "description": "Cannabis retail has extreme seasonality \u2014 4/20, Green Wednesday, and new state launch days can see 5-10x normal transaction volume. Add a 'peak readiness' dimension to the confidence score that evaluates whether a change is safe to deploy in the weeks leading up to peak events. An inventory sync bug at low volume might be tolerable; the same bug at 10x volume could cascade into state reporting discrepancies across hundreds of retailers."
+        },
+        {
+          "title": "Dispensary Persona Simulator",
+          "description": "Attach realistic dispensary personas to tickets \u2014 'Single-location medical-only dispensary in rural Oregon,' 'Five-location recreational chain in Chicago,' 'Multi-state MSO with 30 locations across 4 states.' Each persona exercises different code paths and has different risk profiles. When the QA agent runs tests, it should simulate operations across these personas, catching bugs that only manifest for specific retailer configurations."
+        },
+        {
+          "title": "Seed-to-Sale Trace Validator",
+          "description": "For any ticket touching inventory or product data, automatically validate that the change maintains seed-to-sale traceability chain integrity. Cannabis products must be trackable from cultivation through sale \u2014 if a bulk edit operation can modify product metadata without updating the corresponding Metrc manifest, that is a regulatory violation. The validator would run as a pre-merge check in the SDLC pipeline."
+        }
+      ]
+    },
+    {
+      "name": "Architect",
+      "icon": "\u2b22",
+      "color": "#22c55e",
+      "verdict": "The component architecture is sound for a prototype but the data layer is a dead end \u2014 no API abstraction, no state management, no real-time infrastructure. The transition from demo to product requires a sync engine, not incremental API additions.",
+      "score": 60,
+      "strengths": [
+        "The SDLC stage pipeline (Contexta, Plana, Bilda, QA, Merge) is a clean state machine abstraction \u2014 each stage has a clear agent owner, the progression is linear with well-defined gates, and the data model captures both agent readiness and human input requirements per stage. This maps naturally to a finite state machine implementation with guard conditions.",
+        "The separation between pipeline agents (Contexta/Plana/Bilda/QA) and expert review agents (Design Lead/QA Engineer/SWE/Cannabiz SME/Architect/PMM) is an architecturally sound decomposition \u2014 pipeline agents own progression, expert agents provide parallel oversight. This enables independent scaling and prevents the 'god agent' anti-pattern.",
+        "The CSS design system using Tailwind v4's @theme directive with semantic token naming (surface-0 through surface-4, text-primary/secondary/tertiary, accent-green/amber/red) is the correct architecture for theming \u2014 it creates a single source of truth that both utility classes and custom CSS can reference, and it naturally supports future theme variants."
+      ],
+      "concerns": [
+        "The entire application is a client-side SPA with static data imports and no server interaction model. For an AI-native SDLC tool, the architecture needs a real-time event-driven backbone \u2014 agents produce events asynchronously (thought streams, confidence updates, stage transitions, human input requests), and the UI must reactively consume them. The current architecture of importing static arrays and Records from data.ts cannot evolve into this; it needs to be replaced with a sync engine pattern (WebSocket for events, IndexedDB for client-side persistence, optimistic state machine for stage transitions).",
+        "The Walkthrough component at 412 lines is the most complex component and handles its own audio playback, slide state machine, keyboard navigation, auto-advance timing, and visual rendering all in one file. This violates the composition principle \u2014 the slide state machine, audio controller, and keyboard handler should be extracted into custom hooks or separate components. More critically, the audio handling uses setTimeout chains and manual play/pause synchronization that will break under edge cases (rapid navigation, tab backgrounding, mobile Safari restrictions)."
+      ],
+      "featureIdeas": [
+        {
+          "title": "Event Sourced Agent Pipeline",
+          "description": "Architect the agent pipeline as an event-sourced system where every agent action (thought, decision, confidence change, human input request) is an immutable event in a log. The UI reconstructs current state by replaying events, enabling time-travel debugging of agent decisions. When a Dutchie engineer wants to understand why the Contexta agent flagged a compliance risk, they can scrub backwards through the event log to see exactly what codebase context triggered that assessment."
+        },
+        {
+          "title": "Agent Circuit Breaker",
+          "description": "Implement circuit breaker patterns for each agent in the pipeline. If the Bilda agent fails on 3 consecutive tickets (generates code that fails tests), automatically trip the circuit and route tickets to human review while the agent's behavior is diagnosed. In a cannabis tech context where code errors can cause compliance violations, an agent that is confidently producing wrong answers is more dangerous than one that stops and asks for help."
+        },
+        {
+          "title": "Federated Agent Context Protocol",
+          "description": "Design a context protocol that allows each agent to declare what context it needs (codebase files, ticket history, Datadog metrics, Metrc API schemas) and what context it produces. The orchestrator resolves context dependencies between agents automatically, eliminating the manual context engineering that currently makes multi-agent systems brittle. This becomes critical at scale when the pipeline handles 50+ tickets simultaneously."
+        },
+        {
+          "title": "Warm Standby Agent Pool",
+          "description": "Pre-warm a pool of agent instances with Dutchie's codebase context so that when a new critical bug arrives (like BUG-892), the Contexta agent can begin investigation within seconds instead of spending minutes loading codebase context. For P0 bugs affecting revenue, the difference between a 5-second and 5-minute response from the first agent is the difference between catching the issue in the current deploy cycle or missing it."
+        }
+      ]
+    },
+    {
+      "name": "Product Marketing",
+      "icon": "\u25c9",
+      "color": "#ef4444",
+      "verdict": "The marketing page has strong hero copy and a clear value proposition, but it is selling an AI-native SDLC tool generically instead of positioning it specifically for the cannabis tech vertical where Dutchie has unfair advantages.",
+      "score": 68,
+      "strengths": [
+        "The hero headline 'Ship production code with agents that think' follows the three-verb benefit pattern (ship/think implies a build-and-deploy flow) and the accent color on 'with agents that think' creates visual emphasis on the differentiator. The subhead ('Rubicon orchestrates four specialized AI agents through your entire SDLC') immediately explains the mechanism, avoiding the 'Keep Thinking' trap of telling users what to do without explaining how.",
+        "The social proof section uses concrete numbers (4 agents, 5 stages, 74% avg confidence, 6 expert agents) instead of vanity metrics. These are specific to the product's architecture and can be verified by trying the tool, which builds developer trust. The 'How It Works' section showing each agent with its stage number and capability description is exactly the technical depth developers need to evaluate the product.",
+        "The Walkthrough component is a genuinely creative marketing asset \u2014 a guided presentation with music, auto-advance, and visual recreations of each product concept. The Problem slide ('backlog_FINAL_v3_USE_THIS.csv') nails the emotional hook by showing the chaos developers actually experience. The Warcraft peon easter egg shows personality without undermining credibility."
+      ],
+      "concerns": [
+        "The marketing page positions Rubicon as a generic 'AI-Native SDLC' tool, but the actual product data demonstrates deep cannabis industry expertise (Metrc compliance, multi-location dispensary operations, state-by-state pricing). This is a missed positioning opportunity \u2014 'the AI SDLC tool that understands cannabis compliance' is infinitely more compelling than 'AI agents for your pipeline' in a market where every dev tool claims AI capabilities.",
+        "There are no customer stories, case studies, or even placeholder testimonials. The page goes from feature descriptions to a CTA with no proof that real teams use this. Following Anthropic's model of specific customer stories with ROI data (67 stories added in H2 2024), even 2-3 quotes from Dutchie engineering teams about how agent-assisted triage saved them time on real incidents would dramatically increase conversion credibility."
+      ],
+      "featureIdeas": [
+        {
+          "title": "Live Bug Autopsy Case Study",
+          "description": "Create an interactive case study page that walks through a real (anonymized) Dutchie bug from discovery to merge, showing exactly how each agent contributed. Use the BUG-892 multi-location sync failure as the template \u2014 show Contexta finding the stale cache, Plana recommending the async fix, Bilda implementing it, QA validating across 3-location fixtures. This is the 'show, don't tell' approach that developer audiences trust."
+        },
+        {
+          "title": "Compliance Cost Calculator",
+          "description": "Build a landing page tool where cannabis tech companies input their number of locations, states of operation, and monthly deployment frequency, and get an estimate of compliance-related engineering hours saved by agent-assisted code review. Position Rubicon not as a productivity tool but as a compliance insurance policy \u2014 'How much does a Metrc reporting error cost your business?' Anchor the value in regulatory risk reduction, not developer velocity."
+        },
+        {
+          "title": "Agent Transparency Changelog",
+          "description": "Publish a public changelog in Linear's style that documents not just product updates but agent behavior improvements \u2014 'Contexta now detects Metrc integration points in Go codebases,' 'QA agent added multi-location test fixture generation.' This builds trust in the AI system by showing continuous improvement and treating agent capabilities as features worth announcing."
+        },
+        {
+          "title": "'Agents at Work' Live Dashboard",
+          "description": "Create a public-facing dashboard showing aggregate (anonymized) statistics of Rubicon agents in action \u2014 tickets triaged today, average time from bug report to proposed fix, compliance flags caught before merge. Similar to Cloudflare's radar dashboard, this serves as both a marketing asset and a trust signal. Developers evaluating the tool can see that it is actually being used and producing results."
+        },
+        {
+          "title": "Rubicon Method Manifesto",
+          "description": "Following Linear's '/method' page, publish a detailed philosophy document: 'Why we believe SDLC agents should specialize, not generalize,' 'Why confidence scores matter more than velocity metrics,' 'Why compliance awareness belongs in the development pipeline, not in a separate audit.' Position Dutchie's engineering philosophy as thought leadership in the cannabis tech vertical. Opinions attract the right customers."
+        }
+      ]
+    }
+  ],
+  "featureIdeas": [
+    {
+      "title": "Compliance Ghost Agent",
+      "description": "A dedicated agent that shadows every code change and flags anything touching state reporting integration points (Metrc, BioTrack, tax calculations, purchase limits).",
+      "proposedBy": "Cannabiz SME",
+      "impact": "high",
+      "effort": "high",
+      "rationale": "Cannabis is the most regulated retail vertical in the US. Every code change that touches inventory quantities, sales transactions, or product metadata has potential compliance implications. A single Metrc reporting error can trigger a state audit, fines, or license suspension for a dispensary. Dutchie processes transactions for thousands of retailers across dozens of states \u2014 automated compliance awareness in the development pipeline would prevent the class of bugs that pose existential risk to customers' businesses."
+    },
+    {
+      "title": "Jurisdiction Impact Matrix",
+      "description": "Automatically detect which states/jurisdictions are affected by a code change and display a cross-state impact matrix.",
+      "proposedBy": "Cannabiz SME",
+      "impact": "high",
+      "effort": "medium",
+      "rationale": "Dutchie operates across 30+ states, each with different cannabis regulations, tax structures, product categorization requirements, and reporting formats. A change to tax calculation logic that works perfectly in Oregon might violate Illinois cannabis tax rules. Engineers currently rely on tribal knowledge to understand cross-state implications. Automating this awareness prevents the most expensive class of bugs in cannabis tech \u2014 compliance violations that only manifest in specific jurisdictions."
+    },
+    {
+      "title": "Agent Thought Stream",
+      "description": "Replace static accordion-style agent thoughts with real-time streaming text that appears token-by-token as agents analyze tickets.",
+      "proposedBy": "Design Lead",
+      "impact": "high",
+      "effort": "medium",
+      "rationale": "The current prototype shows agent thoughts as pre-rendered text blocks, which feels like reading documentation rather than watching intelligence at work. For Dutchie engineers evaluating whether to trust an agent's assessment of a critical payment bug, seeing the reasoning unfold in real-time \u2014 watching the Contexta agent trace through order-sync-worker logs and discover the stale cache \u2014 builds the calibrated trust that makes human-AI collaboration work. Static text says 'trust me'; streaming reasoning says 'watch me think.'"
+    },
+    {
+      "title": "Agent WebSocket Event Bus",
+      "description": "Replace static terminal session data with a WebSocket connection streaming typed agent events (AgentThought, StageTransition, HumanInputRequest, ConfidenceUpdate).",
+      "proposedBy": "SWE",
+      "impact": "high",
+      "effort": "high",
+      "rationale": "Dutchie's engineering team is accustomed to real-time systems (order processing, inventory sync, POS communication). A development tool that shows pre-recorded agent output will feel fake to engineers who work with live data streams daily. The WebSocket event bus is the architectural foundation that makes every other real-time feature possible \u2014 without it, the tool is a sophisticated mockup."
+    },
+    {
+      "title": "Event Sourced Agent Pipeline",
+      "description": "Architect the agent pipeline as an event-sourced system where every agent action is an immutable event enabling time-travel debugging.",
+      "proposedBy": "Architect",
+      "impact": "high",
+      "effort": "high",
+      "rationale": "When a Dutchie engineer needs to understand why an agent flagged a compliance risk on a payment processing change, they need to see the full chain of reasoning \u2014 what code the agent examined, what patterns it matched, what context influenced its confidence score. Event sourcing provides this audit trail naturally. For cannabis compliance, having an immutable log of every AI decision in the development pipeline is not just useful \u2014 it may become a regulatory requirement as AI-assisted development becomes standard."
+    },
+    {
+      "title": "Multi-Location Test Fixture Generator",
+      "description": "Automatically generate test scenarios covering 1-location, 3-location, and 10-location retailer configurations based on ticket labels.",
+      "proposedBy": "QA Engineer",
+      "impact": "high",
+      "effort": "medium",
+      "rationale": "The BUG-892 sync failure specifically affects retailers with 3+ locations and was invisible in single-location testing. Multi-location cannabis retailers are Dutchie's highest-value accounts ($40K+ MRR) and the fastest-growing segment. Automatically generating the right test matrix based on ticket context prevents the exact class of bug that causes the most revenue damage \u2014 issues that only manifest at scale configurations."
+    },
+    {
+      "title": "Dispensary Persona Simulator",
+      "description": "Attach realistic dispensary personas (single-location medical, multi-state MSO, delivery-only) to tickets so QA agents test across representative retailer configurations.",
+      "proposedBy": "Cannabiz SME",
+      "impact": "medium",
+      "effort": "medium",
+      "rationale": "A rural single-location medical dispensary in Oregon exercises fundamentally different code paths than a 30-location recreational chain across Illinois and California. Dutchie's customer base spans this entire spectrum. Without persona-aware testing, bugs that affect specific retailer archetypes slip through \u2014 like the BUG-892 sync failure that only hit multi-location retailers. Persona simulation catches these gaps systematically."
+    },
+    {
+      "title": "Confidence Regression Alerts",
+      "description": "Track confidence scores over time and alert when a ticket's confidence drops after previously increasing.",
+      "proposedBy": "QA Engineer",
+      "impact": "medium",
+      "effort": "low",
+      "rationale": "In cannabis tech, a confidence regression often signals that an agent discovered a compliance complication mid-implementation. If the Bilda agent starts with 80% confidence on a payment change but drops to 50% after discovering PCI boundary implications, that signal needs to reach the engineering lead immediately \u2014 not after the agent has spent hours building in the wrong direction."
+    },
+    {
+      "title": "4/20 Readiness Score",
+      "description": "Add a peak-readiness dimension that evaluates whether changes are safe to deploy during high-volume periods (4/20, Green Wednesday, new state launches).",
+      "proposedBy": "Cannabiz SME",
+      "impact": "medium",
+      "effort": "low",
+      "rationale": "Cannabis retail has the most extreme seasonality of any vertical \u2014 4/20 can see 5-10x normal transaction volume. Deploying an inventory sync change the week before 4/20 is categorically different from deploying it in a quiet February week. Dutchie's engineering team already informally implements code freezes around peak events; formalizing this as a confidence dimension makes the risk visible in the tool rather than relying on tribal knowledge."
+    },
+    {
+      "title": "Inline Code Diff Preview",
+      "description": "Render Monaco Editor diff views inline below the terminal when Bilda agent references specific files.",
+      "proposedBy": "SWE",
+      "impact": "medium",
+      "effort": "medium",
+      "rationale": "Dutchie engineers reviewing agent output currently have to context-switch between the Rubicon terminal showing the agent's reasoning and VS Code showing the actual code changes. This breaks the review flow and loses the benefit of having agent context and code changes in the same view. For critical payment or inventory code, reviewing the diff alongside the agent's compliance assessment dramatically reduces review time and error rates."
+    },
+    {
+      "title": "Agent Circuit Breaker",
+      "description": "Implement circuit breaker patterns that stop agents from proceeding when they fail repeatedly, routing tickets to human review instead.",
+      "proposedBy": "Architect",
+      "impact": "high",
+      "effort": "medium",
+      "rationale": "An agent that confidently produces wrong code is more dangerous than one that stops and asks for help. In cannabis tech, where a code error can trigger a compliance violation, the circuit breaker pattern prevents cascading AI failures. If the Bilda agent generates code that fails QA tests on 3 consecutive tickets touching Metrc integration, it should trip the breaker and escalate to human review rather than continue generating potentially non-compliant code."
+    },
+    {
+      "title": "Ticket Dependency Graph",
+      "description": "Add dependency tracking between tickets and render a visual DAG showing blocking relationships.",
+      "proposedBy": "SWE",
+      "impact": "medium",
+      "effort": "medium",
+      "rationale": "Dutchie's order processing pipeline has deep interdependencies \u2014 the sync fix (BUG-892) and the payment timeout fix (BUG-901) both touch the order flow. Without visible dependencies, engineers might ship a fix that breaks an adjacent in-progress fix. In a codebase where payment processing, inventory sync, and compliance reporting are tightly coupled, dependency visibility prevents the most expensive coordination failures."
+    },
+    {
+      "title": "Live Bug Autopsy Case Study",
+      "description": "An interactive marketing page walking through a real anonymized bug from discovery to merge, showing each agent's contribution.",
+      "proposedBy": "Product Marketing",
+      "impact": "high",
+      "effort": "low",
+      "rationale": "Developer marketing lives and dies by demonstration. Dutchie's engineering team has real, compelling stories (a sync bug costing $12K/day discovered by tracing a stale cache through agent investigation). Turning these into interactive walkthroughs is the highest-ROI marketing asset possible \u2014 it simultaneously proves the product works, demonstrates domain expertise in cannabis tech, and gives evaluating engineers a concrete mental model of what daily usage looks like."
+    },
+    {
+      "title": "Compliance Cost Calculator",
+      "description": "A landing page tool where cannabis tech companies input their operating parameters and get an estimate of compliance-related engineering hours saved.",
+      "proposedBy": "Product Marketing",
+      "impact": "medium",
+      "effort": "low",
+      "rationale": "Cannabis tech companies make purchasing decisions based on compliance risk, not developer productivity. Positioning Rubicon as compliance insurance rather than a velocity tool speaks directly to the budget holder (VP Eng or CTO) who has been burned by a Metrc reporting error or a state audit. Anchoring the value proposition in 'how much does a compliance failure cost?' reframes the conversation from 'nice to have' to 'necessary protection.'"
+    },
+    {
+      "title": "Seed-to-Sale Trace Validator",
+      "description": "A pre-merge check that validates changes maintain seed-to-sale traceability chain integrity for any ticket touching inventory or product data.",
+      "proposedBy": "Cannabiz SME",
+      "impact": "high",
+      "effort": "high",
+      "rationale": "Seed-to-sale traceability is the foundational regulatory requirement in cannabis \u2014 every product must be trackable from cultivation through retail sale. If a bulk edit operation can modify product metadata without updating the corresponding Metrc manifest, that breaks the chain and constitutes a regulatory violation. Automating this validation in the development pipeline prevents the single most consequential category of cannabis tech bugs."
+    },
+    {
+      "title": "Split-Terminal Agent Comparison View",
+      "description": "Split the center terminal to show two agents working simultaneously, revealing the pipeline nature of the tool and surfacing disagreements.",
+      "proposedBy": "Design Lead",
+      "impact": "medium",
+      "effort": "medium",
+      "rationale": "When Contexta and Plana disagree on the scope of a fix \u2014 say Contexta identifies a simple cache TTL change but Plana recommends a full architecture refactor of the location resolver \u2014 engineers need to see both perspectives side-by-side. In cannabis tech where fixes often have compliance implications that emerge later in the pipeline, catching agent disagreements early prevents the expensive scenario of building the wrong solution and discovering the compliance gap at the QA stage."
+    },
+    {
+      "title": "Rubicon Method Manifesto",
+      "description": "A published philosophy document explaining why SDLC agents should specialize, why confidence scores matter, and why compliance belongs in the dev pipeline.",
+      "proposedBy": "Product Marketing",
+      "impact": "medium",
+      "effort": "low",
+      "rationale": "Linear's Method page is their most effective content marketing asset \u2014 it attracts the right customers by publishing strong opinions. Dutchie has a unique opportunity to define the intersection of AI-assisted development and regulated industry compliance. A manifesto explaining 'why we believe every code change in cannabis tech should pass through a compliance-aware agent' positions Rubicon as the thought leader in a category that doesn't yet exist."
+    }
+  ],
+  "designDepartures": [
+    {
+      "title": "The Canvas \u2014 Spatial SDLC",
+      "subtitle": "What if your development pipeline was a place you could walk through?",
+      "description": "Imagine replacing the entire ticket list and detail view paradigm with an infinite canvas where each ticket is a physical node on a spatial map. The canvas has five horizontal lanes representing the SDLC stages (Contexta, Plana, Bilda, QA, Merge), and tickets are cards that physically move from left to right as agents progress them through the pipeline. You can zoom out to see the entire queue as a particle flow \u2014 dense clusters indicate bottlenecks, sparse areas indicate healthy throughput. Zoom in on any ticket to see it expand into a detailed workspace.\n\nEach ticket node has visible connection lines to related tickets (dependencies, same-component bugs, same-retailer issues), creating a web of relationships that the list view completely hides. Agent activity is shown as colored particle trails following each ticket \u2014 a purple trail for the Design Lead's attention, a cyan trail for QA, an amber trail for the Cannabiz SME. You can literally see which tickets are getting the most agent attention and which are orphaned.\n\nThe spatial metaphor extends to collaboration: team members appear as cursors on the canvas (like Figma's multiplayer), so you can see that Sarah is investigating the payment timeout bug while Mike is reviewing the inventory toolbar plan. Human input requests appear as glowing hotspots on tickets that pulse until addressed \u2014 you can see at a glance where the pipeline is blocked on humans.\n\nThe canvas supports semantic zoom: at the highest level, you see throughput patterns and bottlenecks. At the mid level, you see ticket cards with confidence scores and stage indicators. At the deepest level, you're inside a ticket's workspace with the terminal, agent panel, and code diffs. Transitions between zoom levels are smooth 300ms animations that maintain spatial context. You always know where you are in the pipeline because location is literal, not metaphorical.\n\nThe right side of the canvas is a 'shipped' zone where merged tickets accumulate as a growing mosaic, giving the team a visceral sense of progress. Each shipped tile shows the confidence score at merge time and which agents contributed, creating a visual portfolio of AI-human collaboration.",
+      "inspirations": ["Figma's infinite canvas and multiplayer cursors", "Miro's spatial organization for complex workflows", "GitHub's contribution graph as a progress visualization", "Observable's notebook paradigm for exploratory data work"],
+      "keyDifference": "Navigation is spatial and continuous (zoom and pan) instead of hierarchical and discrete (list \u2192 detail \u2192 back). You never 'leave' a context \u2014 you zoom into and out of it."
+    },
+    {
+      "title": "The War Room \u2014 Conversational SDLC",
+      "subtitle": "What if you talked to your pipeline instead of clicking through it?",
+      "description": "Replace the entire Rubicon UI with a single persistent chat thread that serves as your interface to the development pipeline. But this is not a chatbot \u2014 it is a multiplayer conversation room where you, the four pipeline agents, and the six expert agents are all participants. When you type 'what's the highest priority right now?', the Contexta agent responds with BUG-892 and its investigation summary. The Cannabiz SME immediately adds a follow-up noting the compliance risk. The QA Engineer jumps in with a test plan. The conversation is structured like a Slack channel but with AI participants who have persistent memory and domain expertise.\n\nThe key interaction pattern is 'direct addressing' \u2014 you can @mention specific agents to get their perspective. '@Bilda, show me the diff for the payment timeout fix' produces an inline code block. '@QA, what's your test matrix for multi-location sync?' produces a formatted checklist. '@Cannabiz, does this change affect Metrc reporting?' produces a jurisdiction analysis. Each agent maintains its own context window and personality, so the Design Lead's responses are terse and opinionated while the QA Engineer's are detailed and paranoid.\n\nThe chat thread has 'rooms' that correspond to tickets. You can branch off the main thread into a ticket-specific room where only the relevant agents are active. The room shows the ticket's full history as a conversation: the original bug report, each agent's initial assessment, the human decisions that were made, the code that was generated, the tests that passed. The entire SDLC is a conversation log, not a state machine.\n\nRich media blocks appear inline: confidence gauges update in real-time within the chat, code diffs render with syntax highlighting, dependency graphs appear as interactive embeds, and terminal sessions replay inline. The chat is not just text \u2014 it is a substrate for any UI widget the agents need to communicate their work.\n\nThe critical innovation is that agent-to-agent conversations are visible. You can watch the Contexta agent hand off context to the Plana agent, see Plana ask clarifying questions, observe the negotiation. This transparency turns the black box of AI orchestration into a readable dialogue. When something goes wrong, the conversation history is the audit trail. When a new engineer joins, reading the conversation history is their onboarding.",
+      "inspirations": ["Slack's threaded conversations for technical collaboration", "Claude's artifact system for inline rich media", "Discord's channel-per-topic organization", "Notion AI's inline contextual assistance"],
+      "keyDifference": "The fundamental interaction model is conversation, not navigation. Instead of clicking through screens to find information, you ask for it and the agents bring it to you with full context."
+    },
+    {
+      "title": "Mission Control \u2014 Ambient SDLC",
+      "subtitle": "What if your development pipeline was always visible, like a cockpit instrument panel?",
+      "description": "Reimagine Rubicon as a persistent heads-up display designed for a second monitor or an always-visible browser tab. The entire viewport is a dense, real-time dashboard with zero navigation \u2014 everything is visible simultaneously, like a NASA mission control screen or a trading floor terminal. No clicking into details, no going back to lists. The information architecture is spatial and fixed: every data point has a permanent location on screen.\n\nThe top third of the screen is the 'Pipeline Flow' \u2014 a horizontal swim lane visualization showing every active ticket as a small card moving through the five SDLC stages. Cards are color-coded by severity and sized by complexity score. Animations show cards sliding from stage to stage in real-time as agents complete work. Blocked tickets pulse red. The flow rate is visible as a subtle particle stream behind the cards \u2014 faster stream means higher throughput. A pipeline stall is immediately visible as cards bunching up at a stage.\n\nThe bottom-left quadrant is the 'Agent Vital Signs' panel \u2014 six agent health meters showing real-time activity levels, current ticket assignments, confidence trend lines, and circuit breaker status. Each agent gets a compact sparkline chart showing their output rate over the last hour. If the QA agent's test pass rate suddenly drops, the meter turns amber. If the Compliance Ghost detects a Metrc integration point in three consecutive tickets, it surfaces a pattern alert. This panel answers 'are my agents healthy and productive?' at a glance.\n\nThe bottom-right quadrant is the 'Alert Feed' \u2014 a reverse-chronological stream of events that require human attention: confidence regressions, agent disagreements, human input requests, circuit breaker trips, and compliance flags. Each alert is a single-line summary with an inline action button (approve, reject, review, snooze). You can triage ten alerts in thirty seconds without opening a single detail view.\n\nThe center of the screen is the 'Focus Panel' \u2014 the only dynamic area. It shows the detail of whatever element you hover over in any other panel. Hover over a ticket card in the pipeline flow, and the focus panel shows the terminal output and agent thoughts. Hover over an agent vital sign, and it shows that agent's recent decisions. Hover over an alert, and it shows the full context. Nothing requires a click to preview \u2014 hover is the primary interaction.\n\nAudio cues complement the visual display: a subtle chime when a ticket moves to Merge, a warning tone when a circuit breaker trips, a soft pulse when an agent requests human input. The dashboard is designed to be monitored with peripheral attention \u2014 you notice when something changes without actively watching it, like hearing a server room's fan pitch change.",
+      "inspirations": ["NASA Mission Control's information density and fixed spatial layout", "Bloomberg Terminal's everything-visible-at-once philosophy", "Datadog's real-time infrastructure dashboards", "Grafana's multi-panel monitoring with alert integration"],
+      "keyDifference": "There is no navigation. Every piece of information has a fixed location on screen, and the primary interaction is hover-to-preview, not click-to-navigate. The tool is designed for continuous ambient monitoring, not task-by-task interaction."
+    },
+    {
+      "title": "The Garden \u2014 Organic SDLC",
+      "subtitle": "What if tickets grew like plants and agents were the weather?",
+      "description": "The most radical departure: replace the entire mechanical metaphor of pipelines, stages, and queues with a biological one. Rubicon becomes a living garden where each ticket is a plant at a different growth stage, and agents are environmental forces (sunlight, water, nutrients) that help them grow. The UI is a top-down view of a procedurally generated garden plot where spatial position, size, color, and animation all encode ticket data.\n\nEach ticket starts as a seed (small dot) when filed and grows through visible stages: sprouting (Contexta gathering context), leafing (Plana creating architecture), flowering (Bilda implementing), fruiting (QA validating), and harvest-ready (Merge). The growth rate is proportional to confidence score \u2014 a ticket at 91% confidence is a tall, vibrant plant, while a ticket at 28% confidence is a stunted seedling. Tickets that need human input show wilting animations, creating an emotional urgency to 'water' them that no red badge can match.\n\nSeverity maps to plant species: critical bugs are red-thorned roses that demand immediate attention, high-priority features are sunflowers that grow tall and visible, medium items are herbs in the middle ground, and low-priority items are ground cover at the edges. The garden's overall health is visible at a glance \u2014 a thriving garden means the pipeline is healthy; a wilting garden means tickets are stuck and agents are struggling.\n\nAgent activity appears as weather effects over the garden: the Contexta agent's investigation phase shows as gentle rain falling on seeds, the Bilda agent's implementation shows as warm sunlight accelerating growth, the QA agent's testing shows as wind testing the plant's resilience, and the Compliance Ghost shows as a protective greenhouse dome appearing over plants that touch regulated code. The Cannabiz SME's domain knowledge manifests as rich soil color beneath plants it has assessed.\n\nInteraction is direct manipulation: you can 'plant' a new ticket by clicking on empty soil, 'prune' a blocked ticket by trimming its branches (removing blockers), 'transplant' a ticket to a different priority zone by dragging it, and 'harvest' a merge-ready ticket with a satisfying pulling animation that adds it to a harvest basket showing the team's weekly output. The harvest basket fills up over the sprint, providing the same progress satisfaction as the Linear changelog but in a visceral, spatial way.\n\nThe philosophical point is serious beneath the playful surface: software development is not a factory assembly line \u2014 it is an organic process where things grow at different rates, need different conditions, and sometimes die despite our best efforts. A garden metaphor makes it emotionally acceptable that some tickets wilt and get composted (closed as won't fix), that growth is nonlinear, and that the health of the whole system matters more than the speed of any individual item. For a cannabis tech company, the botanical metaphor is not even subtle \u2014 it is the most natural possible framing for a team that serves an industry literally built on cultivation.",
+      "inspirations": ["Animal Crossing's garden mechanics for satisfying progression visualization", "GitHub Skyline's 3D contribution visualization", "Stardew Valley's farm management as project management metaphor", "Bloom.io's nature-inspired productivity interfaces"],
+      "keyDifference": "The metaphor itself is the departure. Instead of mechanical concepts (pipelines, queues, stages, scores), the entire information architecture uses biological growth as its organizing principle, encoding data through organic visual properties (size, color, vitality, species) instead of numbers and progress bars."
+    }
+  ]
+}

@@ -206,8 +206,8 @@ function AgentPanel({ ticket }: { ticket: Ticket }) {
       thoughts: ['Reviewing implementation approach...', 'Checking codebase patterns...'],
     },
     {
-      id: 'ops-sme', name: 'Ops SME', role: 'Operations', icon: '◈', color: '#f59e0b',
-      thoughts: ['Assessing operational impact...', 'Reviewing deployment strategy...'],
+      id: 'cannabiz-sme', name: 'Cannabiz SME', role: 'Industry Expert', icon: '◈', color: '#f59e0b',
+      thoughts: ['Assessing impact on dispensary operations...', 'Checking compliance implications...'],
     },
   ]
 
@@ -287,27 +287,24 @@ function ConfidencePanel({ ticket }: { ticket: Ticket }) {
         </div>
       </div>
 
-      {/* Complexity Score */}
+      {/* Complexity Score - Peon Scale */}
       <div className="mb-3">
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-[11px] text-text-secondary">Complexity</span>
           <span className="text-[13px] font-mono font-bold text-text-primary">
-            {ticket.complexityScore}/10
+            {ticket.complexityScore}/5
           </span>
         </div>
-        <div className="flex gap-1">
-          {Array.from({ length: 10 }).map((_, i) => (
-            <div
+        <div className="flex gap-1 items-center">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <img
               key={i}
-              className="flex-1 h-2 rounded-sm"
+              src={`${import.meta.env.BASE_URL}peon.jpeg`}
+              alt="peon"
+              className="w-6 h-6 rounded-sm object-cover"
               style={{
-                backgroundColor: i < ticket.complexityScore
-                  ? ticket.complexityScore >= 8
-                    ? '#ef4444'
-                    : ticket.complexityScore >= 5
-                      ? '#f59e0b'
-                      : '#22c55e'
-                  : '#1e1e23',
+                opacity: i < ticket.complexityScore ? 1 : 0.15,
+                filter: i < ticket.complexityScore ? 'none' : 'grayscale(1)',
               }}
             />
           ))}
@@ -448,7 +445,7 @@ export function DetailView({ ticket, onBack, onSelectTicket, onShowMarketing }: 
           onClick={onShowMarketing}
           className="hover:text-accent-green transition-colors cursor-pointer bg-transparent border-none text-[11px] text-text-tertiary p-0"
         >
-          Why Software Factory? →
+          Why Rubicon? →
         </button>
         <div className="flex items-center gap-4">
           <span>Stage: {stages[getStageIndex(ticket.stage)].label}</span>
