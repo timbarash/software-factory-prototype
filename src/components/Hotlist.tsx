@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Bug, Lightbulb, Search, Zap, ChevronRight, Users, TrendingUp, AlertTriangle, X } from 'lucide-react'
+import { Bug, Lightbulb, Search, Zap, ChevronRight, Users, TrendingUp, AlertTriangle, X, Terminal } from 'lucide-react'
 import { Ticket, getSeverityColor, getConfidenceColor, getHumanInputColor, stages, getStageIndex } from '../data'
 
 interface HotlistProps {
@@ -113,6 +113,12 @@ function TicketCard({ ticket, onClick }: { ticket: Ticket; onClick: () => void }
           <div className="flex items-center gap-1.5">
             <span className="text-[10px] text-text-tertiary uppercase tracking-wider">Stage:</span>
             <span className="text-[11px] font-medium text-accent-green">{currentStage.label}</span>
+            {ticket.stage === 'bilda' && (
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-accent-green/10 text-accent-green border border-accent-green/20 flex items-center gap-1 ml-1">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent-green" style={{ animation: 'pulse-dot 1.5s ease-in-out infinite' }} />
+                building
+              </span>
+            )}
             <div className="flex gap-0.5 ml-1">
               {stages.map((s, i) => (
                 <div
@@ -211,7 +217,7 @@ function CommandPalette({ tickets, onSelect, onClose }: { tickets: Ticket[]; onS
 export function Hotlist({ tickets, onSelectTicket, onShowMarketing, onShowReview }: HotlistProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [showCommandPalette, setShowCommandPalette] = useState(false)
-  const [filterMode, setFilterMode] = useState<'all' | 'critical' | 'ready' | 'compliance'>('all')
+  const [filterMode, setFilterMode] = useState<'all' | 'critical' | 'ready' | 'compliance' | 'building'>('all')
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   // Cmd+K handler
@@ -235,6 +241,7 @@ export function Hotlist({ tickets, onSelectTicket, onShowMarketing, onShowReview
   if (filterMode === 'critical') filtered = filtered.filter(t => t.severity === 'critical')
   if (filterMode === 'ready') filtered = filtered.filter(t => t.confidenceScore >= 80)
   if (filterMode === 'compliance') filtered = filtered.filter(t => t.complianceFlags && t.complianceFlags.length > 0)
+  if (filterMode === 'building') filtered = filtered.filter(t => t.stage === 'bilda')
 
   const sorted = filtered.sort((a, b) => {
     const sevOrder = { critical: 0, high: 1, medium: 2, low: 3 }
@@ -245,6 +252,7 @@ export function Hotlist({ tickets, onSelectTicket, onShowMarketing, onShowReview
   const criticalCount = tickets.filter(t => t.severity === 'critical').length
   const avgConfidence = Math.round(tickets.reduce((s, t) => s + t.confidenceScore, 0) / tickets.length)
   const complianceCount = tickets.filter(t => t.complianceFlags && t.complianceFlags.length > 0).length
+  const buildingCount = tickets.filter(t => t.stage === 'bilda').length
 
   return (
     <div className="h-full flex flex-col">
@@ -311,6 +319,7 @@ export function Hotlist({ tickets, onSelectTicket, onShowMarketing, onShowReview
               { key: 'all' as const, label: 'All', count: tickets.length },
               { key: 'critical' as const, label: 'P0', count: criticalCount },
               { key: 'ready' as const, label: 'Ready', count: tickets.filter(t => t.confidenceScore >= 80).length },
+              { key: 'building' as const, label: '⚡ Building', count: buildingCount },
               { key: 'compliance' as const, label: '👻', count: complianceCount },
             ].map(f => (
               <button
@@ -362,6 +371,13 @@ export function Hotlist({ tickets, onSelectTicket, onShowMarketing, onShowReview
           </button>
         </div>
         <div className="flex items-center gap-4">
+          {buildingCount > 0 && (
+            <span className="flex items-center gap-1.5 text-accent-green">
+              <Terminal size={10} />
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent-green" style={{ animation: 'pulse-dot 1.5s ease-in-out infinite' }} />
+              {buildingCount} build{buildingCount > 1 ? 's' : ''} running
+            </span>
+          )}
           <span>Agents: 4 active</span>
           <span>Queue refresh: 30s</span>
           <kbd className="text-[10px] bg-surface-3 px-1 rounded border border-border">⌘K</kbd>

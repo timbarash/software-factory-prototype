@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { ArrowLeft, Bug, Lightbulb, Zap, ChevronRight, Circle, CheckCircle2, Clock, AlertTriangle, Shield, Search, Send } from 'lucide-react'
+import { ArrowLeft, Bug, Lightbulb, Zap, ChevronRight, Circle, CheckCircle2, Clock, AlertTriangle, Shield, Search, Send, Eye, EyeOff, Play, Terminal } from 'lucide-react'
 import { Ticket, tickets, stages, getStageIndex, getConfidenceColor, getSeverityColor, expertAgents, terminalSessions } from '../data'
 
 interface DetailViewProps {
@@ -23,9 +23,17 @@ function MiniHotlist({ currentId, onSelect }: { currentId: string; onSelect: (id
               : 'bg-transparent hover:bg-surface-2'
           }`}
         >
-          <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: getSeverityColor(t.severity) }} />
+          <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: getSeverityColor(t.severity) }} />
           <div className="flex-1 min-w-0">
-            <div className="text-[10px] font-mono text-text-tertiary">{t.id}</div>
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] font-mono text-text-tertiary">{t.id}</span>
+              {t.stage === 'bilda' && (
+                <span className="text-[8px] px-1 py-0 rounded bg-accent-green/10 text-accent-green border border-accent-green/20 flex items-center gap-0.5">
+                  <span className="inline-block w-1 h-1 rounded-full bg-accent-green" style={{ animation: 'pulse-dot 1.5s ease-in-out infinite' }} />
+                  building
+                </span>
+              )}
+            </div>
             <div className="text-[11px] text-text-secondary truncate">{t.title}</div>
           </div>
           <span className="text-[10px] font-mono" style={{ color: getConfidenceColor(t.confidenceScore) }}>
@@ -90,11 +98,14 @@ function StageTracker({ currentStage }: { currentStage: string }) {
   )
 }
 
-function TerminalWindow({ ticket }: { ticket: Ticket }) {
+function TerminalWindow({ ticket, bildaMode }: { ticket: Ticket; bildaMode?: 'watching' | 'background' }) {
   const [visibleLines, setVisibleLines] = useState<number>(0)
   const [inputValue, setInputValue] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const isBilda = ticket.stage === 'bilda'
+  // Bilda "watching" mode types slower to simulate real-time code writing
+  const typeSpeed = isBilda && bildaMode === 'watching' ? 140 : 60
   const lines = terminalSessions[ticket.id] || [
     `$ claude --ticket ${ticket.id} --stage ${ticket.stage}`,
     '',
@@ -120,9 +131,9 @@ function TerminalWindow({ ticket }: { ticket: Ticket }) {
         }
         return prev + 1
       })
-    }, 60)
+    }, typeSpeed)
     return () => clearInterval(timer)
-  }, [ticket.id, lines.length])
+  }, [ticket.id, lines.length, typeSpeed])
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -188,9 +199,21 @@ function TerminalWindow({ ticket }: { ticket: Ticket }) {
           <span className="px-1.5 py-0.5 rounded bg-accent-purple/10 text-accent-purple border border-accent-purple/20 font-medium">
             claude-opus-4-6
           </span>
-          <span className="px-1.5 py-0.5 rounded bg-accent-green/10 text-accent-green border border-accent-green/20">
-            ● connected
-          </span>
+          {isBilda && bildaMode === 'watching' ? (
+            <span className="px-1.5 py-0.5 rounded bg-accent-green/10 text-accent-green border border-accent-green/20 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent-green" style={{ animation: 'pulse-dot 1s ease-in-out infinite' }} />
+              building live
+            </span>
+          ) : isBilda && bildaMode === 'background' ? (
+            <span className="px-1.5 py-0.5 rounded bg-accent-amber/10 text-accent-amber border border-accent-amber/20 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent-amber" style={{ animation: 'pulse-dot 2s ease-in-out infinite' }} />
+              background
+            </span>
+          ) : (
+            <span className="px-1.5 py-0.5 rounded bg-accent-green/10 text-accent-green border border-accent-green/20">
+              ● connected
+            </span>
+          )}
         </div>
       </div>
 
@@ -499,6 +522,9 @@ function ConfidencePanel({ ticket }: { ticket: Ticket }) {
 }
 
 export function DetailView({ ticket, onBack, onSelectTicket, onShowMarketing }: DetailViewProps) {
+  const [bildaMode, setBildaMode] = useState<'watching' | 'background'>('watching')
+  const isBilda = ticket.stage === 'bilda'
+
   return (
     <div className="h-full flex flex-col bg-surface-0">
       {/* Top Bar */}
@@ -557,6 +583,47 @@ export function DetailView({ ticket, onBack, onSelectTicket, onShowMarketing }: 
         </div>
       </div>
 
+      {/* Bilda Banner — shown when ticket is in implementation stage */}
+      {isBilda && (
+        <div className="px-4 py-2 border-b border-accent-green/20 bg-accent-green/5 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Terminal size={14} className="text-accent-green" />
+              <span className="text-[12px] font-medium text-accent-green">Bilda is writing code</span>
+            </div>
+            <span className="text-[11px] text-text-secondary">
+              {bildaMode === 'watching'
+                ? 'Watching live — you can steer with the input bar below'
+                : 'Building in background — work on other tickets while Bilda codes'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setBildaMode('watching')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors border cursor-pointer ${
+                bildaMode === 'watching'
+                  ? 'bg-accent-green/15 border-accent-green/30 text-accent-green'
+                  : 'bg-transparent border-border text-text-tertiary hover:border-border-bright'
+              }`}
+            >
+              <Eye size={12} />
+              Watch & Steer
+            </button>
+            <button
+              onClick={() => { setBildaMode('background'); onBack() }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors border cursor-pointer ${
+                bildaMode === 'background'
+                  ? 'bg-accent-amber/15 border-accent-amber/30 text-accent-amber'
+                  : 'bg-transparent border-border text-text-tertiary hover:border-border-bright'
+              }`}
+            >
+              <EyeOff size={12} />
+              Build in Background
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Panel */}
@@ -569,7 +636,7 @@ export function DetailView({ ticket, onBack, onSelectTicket, onShowMarketing }: 
 
         {/* Center — Terminal */}
         <div className="flex-1 p-3 flex flex-col min-w-0">
-          <TerminalWindow ticket={ticket} />
+          <TerminalWindow ticket={ticket} bildaMode={isBilda ? bildaMode : undefined} />
         </div>
 
         {/* Right Panel */}
