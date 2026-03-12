@@ -475,20 +475,20 @@ export function Walkthrough({ onClose, musicSrc, autoStart }: WalkthroughProps) 
     })
   }, [])
 
-  // Gradual music fadeout over ~10 seconds
+  // Very gradual music fadeout over ~20 seconds — still fading as finale appears
   const fadeOutMusic = useCallback(() => {
     const el = audioRef.current
     if (!el) return
     if (fadeOutRef.current) clearInterval(fadeOutRef.current)
-    const steps = 100
-    const stepDuration = 100 // 10s total
+    const steps = 200
+    const stepDuration = 100 // 20s total
     let step = 0
     const startVol = el.volume
     fadeOutRef.current = window.setInterval(() => {
       step++
-      // Ease-out curve for natural fade
+      // Slow ease-out curve — stays audible longer, then drops off gently
       const t = step / steps
-      el.volume = Math.max(0, startVol * (1 - t * t))
+      el.volume = Math.max(0, startVol * Math.pow(1 - t, 1.5))
       if (step >= steps) {
         if (fadeOutRef.current) clearInterval(fadeOutRef.current)
         el.pause()
