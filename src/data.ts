@@ -9,6 +9,13 @@ export interface AgentAssessment {
   summary: string;
 }
 
+export interface ComplianceFlag {
+  jurisdiction: string;
+  system: string;
+  risk: 'clear' | 'warning' | 'violation';
+  detail: string;
+}
+
 export interface Ticket {
   id: string;
   title: string;
@@ -25,6 +32,7 @@ export interface Ticket {
   agents: AgentAssessment[];
   confidenceScore: number;
   complexityScore: number;
+  complianceFlags?: ComplianceFlag[];
 }
 
 export interface ExpertAgent {
@@ -65,6 +73,10 @@ export const tickets: Ticket[] = [
     ],
     confidenceScore: 74,
     complexityScore: 3,
+    complianceFlags: [
+      { jurisdiction: 'All States', system: 'Metrc/BioTrack', risk: 'warning', detail: 'Bulk archive must maintain audit trail for track-and-trace compliance' },
+      { jurisdiction: 'Oregon', system: 'OLCC', risk: 'warning', detail: 'Bulk price edits may trigger Metrc price-point update reporting' },
+    ],
   },
   {
     id: 'BUG-892',
@@ -86,6 +98,11 @@ export const tickets: Ticket[] = [
     ],
     confidenceScore: 28,
     complexityScore: 5,
+    complianceFlags: [
+      { jurisdiction: 'Colorado', system: 'MED/Metrc', risk: 'violation', detail: 'Order sync failure causing Metrc report divergence across locations — active violation risk' },
+      { jurisdiction: 'Oregon', system: 'OLCC/Metrc', risk: 'violation', detail: 'Unsynced orders may not report to state track-and-trace system' },
+      { jurisdiction: 'California', system: 'DCC/CCTT', risk: 'warning', detail: 'Multi-location inventory counts may mismatch state records' },
+    ],
   },
   {
     id: 'PF-1251',
@@ -107,6 +124,9 @@ export const tickets: Ticket[] = [
     ],
     confidenceScore: 82,
     complexityScore: 3,
+    complianceFlags: [
+      { jurisdiction: 'All States', system: 'Metrc', risk: 'warning', detail: 'Inventory threshold alerts must not expose track-and-trace package IDs in notifications' },
+    ],
   },
   {
     id: 'BUG-901',
@@ -128,6 +148,9 @@ export const tickets: Ticket[] = [
     ],
     confidenceScore: 91,
     complexityScore: 2,
+    complianceFlags: [
+      { jurisdiction: 'All States', system: 'PCI-DSS', risk: 'warning', detail: 'Async fraud check changes PCI compliance boundary — webhook must not log card data' },
+    ],
   },
   {
     id: 'PF-1239',
@@ -247,6 +270,19 @@ export const expertAgents: Record<string, ExpertAgent[]> = {
         'Multi-location brands will try to bulk-edit across locations. Scope this to single-location first — cross-location price sync is a different beast with different state regs.',
       ],
     },
+    {
+      id: 'compliance-ghost',
+      name: 'Compliance Ghost',
+      role: 'Regulatory Auditor',
+      icon: '👻',
+      color: '#ec4899',
+      thoughts: [
+        'FLAGGED: Bulk archive touches inventory quantity fields — this codepath reports to Metrc in 28 states. Any archive operation must write a corresponding Metrc adjustment event or the state record diverges.',
+        'Bulk price edit triggers OLCC price-point reporting in Oregon. The current /api/inventory/bulk endpoint does not call the Metrc price update webhook — this must be added before launch.',
+        'CLEAR: Bulk status change (active/inactive) does not touch any compliance-sensitive codepaths. Safe to ship without additional regulatory checks.',
+        'RECOMMENDATION: Add a pre-commit hook that detects changes to files in /src/services/inventory/ and auto-flags for compliance review. 14 of the last 20 compliance incidents originated in this directory.',
+      ],
+    },
   ],
   'BUG-892': [
     {
@@ -299,6 +335,19 @@ export const expertAgents: Record<string, ExpertAgent[]> = {
         'Multi-location is growing fast — brands are opening 2nd and 3rd stores quarterly. This bug will hit more retailers every week we don\'t fix it.',
         'Compliance angle: if orders aren\'t syncing to POS, those sales may not be reported to the state tracking system. That\'s a regulatory violation.',
         'Affected retailers like Green Leaf PDX are high-value accounts ($40K+ MRR). Losing one of them to this bug costs more than the fix.',
+      ],
+    },
+    {
+      id: 'compliance-ghost',
+      name: 'Compliance Ghost',
+      role: 'Regulatory Auditor',
+      icon: '👻',
+      color: '#ec4899',
+      thoughts: [
+        'VIOLATION RISK — ACTIVE: Order sync failure is causing Metrc track-and-trace reports to diverge across locations in Colorado and Oregon. If a state auditor pulls reports during this window, affected retailers face Category 2 violations ($5K-$50K fines per incident).',
+        'Scanned order-sync-worker.go: the sync pathway calls inventory.Deduct() without a corresponding Metrc.ReportSale() for the destination location. This means successfully synced orders also have a reporting gap — the bug is worse than the ticket describes.',
+        'JURISDICTIONS AT RISK: Colorado (MED), Oregon (OLCC), California (DCC). Washington uses Leaf Data Systems with a different reporting cadence — lower immediate risk but still non-compliant.',
+        'RECOMMENDATION: After fixing the sync bug, run a reconciliation job comparing Dutchie order records against Metrc reported sales for all multi-location retailers in the last 30 days. Any discrepancies must be filed as amended reports before the next state audit window.',
       ],
     },
   ],

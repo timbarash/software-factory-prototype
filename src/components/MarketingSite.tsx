@@ -86,7 +86,7 @@ export function MarketingSite({ onBack, onWalkthrough }: MarketingSiteProps) {
               <div className="text-[12px] text-text-tertiary">Avg Confidence Score</div>
             </div>
             <div>
-              <div className="text-[28px] font-bold text-accent-amber">6</div>
+              <div className="text-[28px] font-bold text-accent-amber">7</div>
               <div className="text-[12px] text-text-tertiary">Expert Review Agents</div>
             </div>
           </div>
@@ -166,7 +166,7 @@ export function MarketingSite({ onBack, onWalkthrough }: MarketingSiteProps) {
           <div className="text-center mb-12">
             <h2 className="text-[28px] font-bold text-text-primary mb-3">Persistent expert oversight</h2>
             <p className="text-[14px] text-text-secondary max-w-lg mx-auto">
-              While your code moves through the pipeline, six specialized review agents watch everything — from architecture patterns to marketing implications.
+              While your code moves through the pipeline, seven specialized review agents watch everything — from architecture patterns to regulatory compliance.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -177,6 +177,7 @@ export function MarketingSite({ onBack, onWalkthrough }: MarketingSiteProps) {
               { name: 'Cannabiz SME', desc: 'Industry context — how bugs and features impact real dispensaries, brands, and compliance workflows.', icon: '◈', color: '#f59e0b' },
               { name: 'Architect', desc: 'System design, performance, type safety, React/Go patterns, security review.', icon: '⬢', color: '#22c55e' },
               { name: 'Product Marketing', desc: 'Positioning, messaging, developer experience. How does this feature tell your story?', icon: '◉', color: '#ef4444' },
+              { name: 'Compliance Ghost', desc: 'Invisible regulatory auditor. Scans every change for compliance risk across jurisdictions — Metrc, BioTrack, OLCC, DCC. Flags violations before they reach production.', icon: '👻', color: '#ec4899' },
             ].map(agent => (
               <div key={agent.name} className="flex items-start gap-3 p-4 rounded-lg bg-surface-2 border border-border">
                 <span style={{ color: agent.color }} className="text-[16px] mt-0.5">{agent.icon}</span>
@@ -204,7 +205,7 @@ export function MarketingSite({ onBack, onWalkthrough }: MarketingSiteProps) {
               { icon: Brain, title: 'Confidence Scoring', desc: 'Every ticket gets a confidence score based on agent consensus. Know before you start whether this needs you or not.' },
               { icon: Users, title: 'Human Input Tracking', desc: 'Agents explicitly flag where they need human decisions. No guessing about what\'s blocking progress.' },
               { icon: Terminal, title: 'Claude Code Terminal', desc: 'Full terminal interface centered in the detail view. Watch agents work in real-time, intervene when needed.' },
-              { icon: TrendingUp, title: 'Complexity Analysis', desc: '1-10 complexity score based on codebase analysis, dependency graph, and historical velocity data.' },
+              { icon: Shield, title: 'Compliance Ghost', desc: 'Invisible regulatory auditor scans every change across Metrc, BioTrack, OLCC, and DCC. Flags violations before they reach production.' },
               { icon: GitBranch, title: 'SDLC Stage Tracking', desc: 'Visual pipeline from Contexta through Merge. Always know exactly where every ticket stands.' },
               { icon: CheckCircle2, title: 'Next Logical Action', desc: 'The queue is sorted by what matters. Critical bugs first, then highest-confidence items. Stop triaging, start shipping.' },
             ].map(feature => (

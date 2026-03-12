@@ -11,7 +11,7 @@ interface Slide {
   label: string;
   headline: string;
   subtext?: string;
-  visual: 'problem' | 'hotlist' | 'terminal' | 'agents' | 'outcome';
+  visual: 'problem' | 'hotlist' | 'terminal' | 'compliance' | 'agents' | 'outcome';
   hasPeon?: boolean;
   duration: number;
 }
@@ -39,8 +39,15 @@ const slides: Slide[] = [
     duration: 5500,
   },
   {
+    label: 'THE COMPLIANCE GHOST',
+    headline: 'An invisible auditor watches every change.',
+    subtext: 'The Compliance Ghost scans for regulatory risk across Metrc, BioTrack, OLCC, and DCC — flagging violations before they reach production.',
+    visual: 'compliance',
+    duration: 5500,
+  },
+  {
     label: 'THE AGENTS',
-    headline: 'Six persistent experts. Zero meetings.',
+    headline: 'Seven persistent experts. Zero meetings.',
     subtext: 'Each reviewing from their domain. Real-time thoughts, not async reviews.',
     visual: 'agents',
     hasPeon: true,
@@ -171,6 +178,7 @@ function AgentsVisual({ hasPeon }: { hasPeon?: boolean }) {
     { icon: '\u25C8', name: 'Cannabiz SME', thought: 'Dispensaries losing $12K/day — customers order online, show up, product isn\'t there', color: '#f59e0b' },
     { icon: '\u2B22', name: 'Architect', thought: 'Add circuit breaker pattern', color: '#22c55e' },
     { icon: '\u25C9', name: 'Product Marketing', thought: 'Reliability is our brand story', color: '#ef4444' },
+    { icon: '👻', name: 'Compliance Ghost', thought: '3 jurisdictions at active violation risk — block merge', color: '#ec4899' },
   ]
   return (
     <div className="max-w-2xl mx-auto grid grid-cols-2 gap-2 relative">
@@ -190,6 +198,56 @@ function AgentsVisual({ hasPeon }: { hasPeon?: boolean }) {
           <span className="ml-2 opacity-40">"Work work."</span>
         </div>
       )}
+    </div>
+  )
+}
+
+function ComplianceVisual() {
+  const [scanLine, setScanLine] = useState(0)
+  const flags = [
+    { jurisdiction: 'Colorado', system: 'MED/Metrc', risk: 'violation', detail: 'Order sync failure causing Metrc report divergence' },
+    { jurisdiction: 'Oregon', system: 'OLCC/Metrc', risk: 'violation', detail: 'Unsynced orders not reporting to state track-and-trace' },
+    { jurisdiction: 'California', system: 'DCC/CCTT', risk: 'warning', detail: 'Multi-location inventory counts may mismatch state records' },
+  ]
+  useEffect(() => {
+    const timer = setInterval(() => setScanLine(l => l < flags.length ? l + 1 : l), 600)
+    return () => clearInterval(timer)
+  }, [])
+  return (
+    <div className="max-w-2xl mx-auto">
+      <div className="bg-surface-2 rounded-lg border border-border overflow-hidden">
+        <div className="flex items-center gap-2 px-4 py-2.5 bg-surface-3 border-b border-border">
+          <span className="text-[16px]">👻</span>
+          <span className="text-[12px] font-medium text-pink-400">Compliance Ghost</span>
+          <span className="text-[10px] text-text-tertiary">— Scanning BUG-892</span>
+          <span className="ml-auto text-[10px] text-accent-red font-mono" style={{ animation: 'pulse-dot 2s ease-in-out infinite' }}>● SCANNING</span>
+        </div>
+        <div className="p-4 space-y-2">
+          {flags.slice(0, scanLine).map((flag, i) => (
+            <div key={i} className={`rounded p-3 border animate-fade-in-up ${
+              flag.risk === 'violation' ? 'bg-accent-red/5 border-accent-red/20' : 'bg-accent-amber/5 border-accent-amber/20'
+            }`} style={{ animationDelay: `${i * 100}ms` }}>
+              <div className="flex items-center justify-between mb-1">
+                <span className={`text-[11px] font-mono font-bold ${flag.risk === 'violation' ? 'text-accent-red' : 'text-accent-amber'}`}>
+                  {flag.risk.toUpperCase()}
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-text-tertiary">{flag.system}</span>
+                  <span className="text-[11px] text-text-secondary font-medium">{flag.jurisdiction}</span>
+                </div>
+              </div>
+              <div className={`text-[12px] ${flag.risk === 'violation' ? 'text-accent-red' : 'text-accent-amber'}`}>
+                {flag.detail}
+              </div>
+            </div>
+          ))}
+          {scanLine >= flags.length && (
+            <div className="text-center pt-2 text-[11px] text-pink-400 animate-fade-in-up">
+              👻 3 jurisdictions at risk — recommend blocking merge until reconciliation complete
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
@@ -236,6 +294,8 @@ export function Walkthrough({ onClose, musicSrc, autoStart }: WalkthroughProps) 
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const slideStartRef = useRef(Date.now())
 
+  const fadeOutRef = useRef<number | null>(null)
+
   // Direct DOM play — called synchronously from click handler
   const playAudio = useCallback(() => {
     const el = audioRef.current
@@ -246,6 +306,26 @@ export function Walkthrough({ onClose, musicSrc, autoStart }: WalkthroughProps) 
     }).catch((e) => {
       console.warn('Audio play blocked:', e)
     })
+  }, [])
+
+  // Gradual music fadeout over ~3 seconds
+  const fadeOutMusic = useCallback(() => {
+    const el = audioRef.current
+    if (!el) return
+    if (fadeOutRef.current) clearInterval(fadeOutRef.current)
+    const steps = 30
+    const stepDuration = 100 // 3s total
+    let step = 0
+    const startVol = el.volume
+    fadeOutRef.current = window.setInterval(() => {
+      step++
+      el.volume = Math.max(0, startVol * (1 - step / steps))
+      if (step >= steps) {
+        if (fadeOutRef.current) clearInterval(fadeOutRef.current)
+        el.pause()
+        el.volume = 0.35 // reset for potential replay
+      }
+    }, stepDuration)
   }, [])
 
   // Click handler for splash screen
@@ -285,14 +365,17 @@ export function Walkthrough({ onClose, musicSrc, autoStart }: WalkthroughProps) 
     const dur = slides[currentSlide].duration
     const timer = setTimeout(() => {
       if (currentSlide < slides.length - 1) nextSlide()
-      else setIsPlaying(false)
+      else {
+        fadeOutMusic()
+        setIsPlaying(false)
+      }
     }, dur)
     const prog = setInterval(() => {
       const elapsed = Date.now() - slideStartRef.current
       setSlideProgress(Math.min(elapsed / dur, 1))
     }, 50)
     return () => { clearTimeout(timer); clearInterval(prog) }
-  }, [isPlaying, currentSlide, nextSlide, started])
+  }, [isPlaying, currentSlide, nextSlide, started, fadeOutMusic])
 
   // Play/pause/mute sync
   useEffect(() => {
@@ -302,6 +385,11 @@ export function Walkthrough({ onClose, musicSrc, autoStart }: WalkthroughProps) 
     if (isPlaying) el.play().catch(() => {})
     else el.pause()
   }, [isPlaying, isMuted, started])
+
+  // Cleanup fadeout on unmount
+  useEffect(() => {
+    return () => { if (fadeOutRef.current) clearInterval(fadeOutRef.current) }
+  }, [])
 
   // Keyboard
   useEffect(() => {
@@ -369,6 +457,7 @@ export function Walkthrough({ onClose, musicSrc, autoStart }: WalkthroughProps) 
                 {slide.visual === 'problem' && <ProblemVisual />}
                 {slide.visual === 'hotlist' && <HotlistVisual />}
                 {slide.visual === 'terminal' && <TerminalVisual />}
+                {slide.visual === 'compliance' && <ComplianceVisual />}
                 {slide.visual === 'agents' && <AgentsVisual hasPeon={slide.hasPeon} />}
                 {slide.visual === 'outcome' && <OutcomeVisual />}
               </div>

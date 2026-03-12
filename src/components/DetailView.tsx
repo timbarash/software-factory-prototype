@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { ArrowLeft, Bug, Lightbulb, Zap, ChevronRight, Circle, CheckCircle2, Clock, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Bug, Lightbulb, Zap, ChevronRight, Circle, CheckCircle2, Clock, AlertTriangle, Shield, Search, Send } from 'lucide-react'
 import { Ticket, tickets, stages, getStageIndex, getConfidenceColor, getSeverityColor, expertAgents, terminalSessions } from '../data'
 
 interface DetailViewProps {
@@ -92,7 +92,9 @@ function StageTracker({ currentStage }: { currentStage: string }) {
 
 function TerminalWindow({ ticket }: { ticket: Ticket }) {
   const [visibleLines, setVisibleLines] = useState<number>(0)
+  const [inputValue, setInputValue] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const lines = terminalSessions[ticket.id] || [
     `$ claude --ticket ${ticket.id} --stage ${ticket.stage}`,
     '',
@@ -128,9 +130,49 @@ function TerminalWindow({ ticket }: { ticket: Ticket }) {
     }
   }, [visibleLines])
 
+  const renderLine = (line: string) => {
+    // Claude-style thinking block
+    if (line.startsWith('⟡ thinking')) {
+      return <span className="text-text-tertiary italic text-[11px]">⟡ {line.slice(2)}</span>
+    }
+    // Tool use blocks
+    if (line.startsWith('  ⚙ tool:') || line.startsWith('  ⚙ Read') || line.startsWith('  ⚙ Grep') || line.startsWith('  ⚙ Edit') || line.startsWith('  ⚙ Bash')) {
+      return (
+        <span className="text-accent-purple">
+          <span className="text-[10px] bg-accent-purple/10 px-1 py-0.5 rounded border border-accent-purple/20">{line.trim()}</span>
+        </span>
+      )
+    }
+    // Tool result
+    if (line.startsWith('  ↳ ')) {
+      return <span className="text-text-tertiary text-[11px] pl-4">{line}</span>
+    }
+    if (line.startsWith('$') || line.startsWith('❯')) {
+      return (
+        <span>
+          <span className="text-terminal-green">❯</span>{' '}
+          <span className="text-text-primary">{line.replace(/^[$❯]\s*/, '')}</span>
+        </span>
+      )
+    }
+    if (line.startsWith('◆')) return <span className="text-accent-purple font-semibold">{line}</span>
+    if (line.startsWith('  ✓')) return <span className="text-accent-green">{line}</span>
+    if (line.startsWith('  ✗')) return <span className="text-accent-red">{line}</span>
+    if (line.startsWith('  ⚠')) return <span className="text-accent-amber font-semibold">{line}</span>
+    if (line.startsWith('  ⏳')) return <span className="text-text-tertiary">{line}</span>
+    if (line.includes('━━━')) return <span className="text-text-tertiary">{line}</span>
+    if (line.startsWith('  ┌') || line.startsWith('  │') || line.startsWith('  └')) return <span className="text-accent-blue">{line}</span>
+    if (line.startsWith('    →')) return <span className="text-accent-cyan">{line}</span>
+    // 👻 Compliance Ghost lines
+    if (line.includes('👻') || line.includes('VIOLATION') || line.includes('JURISDICTION')) {
+      return <span className="text-pink-400 font-medium">{line}</span>
+    }
+    return <span className="text-text-secondary">{line}</span>
+  }
+
   return (
-    <div className="flex flex-col h-full bg-terminal-bg rounded-lg border border-border overflow-hidden">
-      {/* Terminal Header */}
+    <div className="flex flex-col h-full bg-terminal-bg rounded-lg border border-border overflow-hidden" onClick={() => inputRef.current?.focus()}>
+      {/* Claude-style Terminal Header */}
       <div className="flex items-center justify-between px-3 py-2 bg-surface-2 border-b border-border">
         <div className="flex items-center gap-2">
           <div className="flex gap-1.5">
@@ -143,7 +185,9 @@ function TerminalWindow({ ticket }: { ticket: Ticket }) {
           </span>
         </div>
         <div className="flex items-center gap-2 text-[10px] text-text-tertiary">
-          <span className="px-1.5 py-0.5 rounded bg-surface-3 border border-border">bash</span>
+          <span className="px-1.5 py-0.5 rounded bg-accent-purple/10 text-accent-purple border border-accent-purple/20 font-medium">
+            claude-opus-4-6
+          </span>
           <span className="px-1.5 py-0.5 rounded bg-accent-green/10 text-accent-green border border-accent-green/20">
             ● connected
           </span>
@@ -154,30 +198,7 @@ function TerminalWindow({ ticket }: { ticket: Ticket }) {
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 font-mono text-[12px] leading-relaxed">
         {lines.slice(0, visibleLines).map((line, i) => (
           <div key={i} className="min-h-[1.2em]">
-            {line.startsWith('$') ? (
-              <span>
-                <span className="text-terminal-green">❯</span>{' '}
-                <span className="text-text-primary">{line.slice(2)}</span>
-              </span>
-            ) : line.startsWith('◆') ? (
-              <span className="text-accent-purple font-semibold">{line}</span>
-            ) : line.startsWith('  ✓') ? (
-              <span className="text-accent-green">{line}</span>
-            ) : line.startsWith('  ✗') ? (
-              <span className="text-accent-red">{line}</span>
-            ) : line.startsWith('  ⚠') ? (
-              <span className="text-accent-amber font-semibold">{line}</span>
-            ) : line.startsWith('  ⏳') ? (
-              <span className="text-text-tertiary">{line}</span>
-            ) : line.includes('━━━') ? (
-              <span className="text-text-tertiary">{line}</span>
-            ) : line.startsWith('  ┌') || line.startsWith('  │') || line.startsWith('  └') ? (
-              <span className="text-accent-blue">{line}</span>
-            ) : line.startsWith('    →') ? (
-              <span className="text-accent-cyan">{line}</span>
-            ) : (
-              <span className="text-text-secondary">{line}</span>
-            )}
+            {renderLine(line)}
           </div>
         ))}
         {visibleLines >= lines.length && (
@@ -186,6 +207,71 @@ function TerminalWindow({ ticket }: { ticket: Ticket }) {
             <span className="terminal-cursor" />
           </div>
         )}
+      </div>
+
+      {/* Claude-style Input Bar */}
+      <div className="border-t border-border bg-surface-2/50 px-3 py-2">
+        <div className="flex items-center gap-2">
+          <span className="text-terminal-green text-[12px] font-mono">❯</span>
+          <input
+            ref={inputRef}
+            type="text"
+            value={inputValue}
+            onChange={e => setInputValue(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && inputValue.trim()) setInputValue('') }}
+            placeholder="Ask Claude about this ticket..."
+            className="flex-1 bg-transparent border-none outline-none text-[12px] font-mono text-text-primary placeholder:text-text-tertiary"
+          />
+          <button className="text-text-tertiary hover:text-accent-green transition-colors bg-transparent border-none cursor-pointer p-0.5">
+            <Send size={12} />
+          </button>
+        </div>
+        <div className="flex items-center gap-3 mt-1 text-[9px] text-text-tertiary">
+          <span>⌘K commands</span>
+          <span>↑↓ history</span>
+          <span>Tab autocomplete</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CompliancePanel({ ticket }: { ticket: Ticket }) {
+  if (!ticket.complianceFlags || ticket.complianceFlags.length === 0) return null
+
+  const riskColors = {
+    clear: { bg: 'bg-accent-green/10', border: 'border-accent-green/20', text: 'text-accent-green', label: 'CLEAR' },
+    warning: { bg: 'bg-accent-amber/10', border: 'border-accent-amber/20', text: 'text-accent-amber', label: 'WARNING' },
+    violation: { bg: 'bg-accent-red/10', border: 'border-accent-red/20', text: 'text-accent-red', label: 'VIOLATION' },
+  }
+
+  const hasViolation = ticket.complianceFlags.some(f => f.risk === 'violation')
+
+  return (
+    <div className={`rounded-lg border p-3 ${hasViolation ? 'bg-accent-red/5 border-accent-red/30' : 'bg-surface-1 border-border'}`}>
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-[14px]">👻</span>
+        <div className="text-[10px] text-text-tertiary uppercase tracking-wider">Compliance Ghost</div>
+        {hasViolation && (
+          <span className="text-[9px] px-1.5 py-0.5 rounded bg-accent-red/10 text-accent-red border border-accent-red/20 font-medium" style={{ animation: 'pulse-dot 2s ease-in-out infinite' }}>
+            ACTIVE RISK
+          </span>
+        )}
+      </div>
+      <div className="flex flex-col gap-2">
+        {ticket.complianceFlags.map((flag, i) => {
+          const risk = riskColors[flag.risk]
+          return (
+            <div key={i} className={`rounded p-2 ${risk.bg} border ${risk.border}`}>
+              <div className="flex items-center justify-between mb-1">
+                <span className={`text-[10px] font-mono font-bold ${risk.text}`}>{risk.label}</span>
+                <span className="text-[10px] text-text-tertiary">{flag.jurisdiction}</span>
+              </div>
+              <div className="text-[10px] text-text-tertiary mb-1">{flag.system}</div>
+              <div className={`text-[11px] ${risk.text} leading-relaxed`}>{flag.detail}</div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -401,6 +487,16 @@ export function DetailView({ ticket, onBack, onSelectTicket, onShowMarketing }: 
             </span>
           </div>
           <span className="text-[13px] font-medium text-text-primary">{ticket.title}</span>
+          {ticket.complianceFlags && ticket.complianceFlags.length > 0 && (
+            <span className={`text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1 ${
+              ticket.complianceFlags.some(f => f.risk === 'violation')
+                ? 'bg-accent-red/10 text-accent-red border border-accent-red/20'
+                : 'bg-accent-amber/10 text-accent-amber border border-accent-amber/20'
+            }`}>
+              <span>👻</span>
+              {ticket.complianceFlags.some(f => f.risk === 'violation') ? 'Violation Risk' : 'Compliance Flag'}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-3">
           {ticket.errorRate && (
@@ -435,6 +531,7 @@ export function DetailView({ ticket, onBack, onSelectTicket, onShowMarketing }: 
         {/* Right Panel */}
         <div className="w-72 border-l border-border bg-surface-1 flex flex-col overflow-y-auto shrink-0 p-3 gap-4">
           <AgentPanel ticket={ticket} />
+          <CompliancePanel ticket={ticket} />
           <ConfidencePanel ticket={ticket} />
         </div>
       </div>
