@@ -326,7 +326,7 @@ function AgentPanel({ ticket }: { ticket: Ticket }) {
 
       {streamMode ? (
         /* Thought Stream Mode — inspired by review doc's Agent Thought Stream concept */
-        <div className="rounded-lg border border-border bg-surface-2 p-2 overflow-y-auto">
+        <div className="rounded-lg border border-border bg-surface-2 p-2 overflow-y-auto max-h-[40vh]">
           <div className="relative">
             <div className="absolute left-[11px] top-2 bottom-2 w-px bg-border" />
             <div className="flex flex-col gap-2">
@@ -449,13 +449,13 @@ function ConfidencePanel({ ticket }: { ticket: Ticket }) {
             {ticket.complexityScore}/5
           </span>
         </div>
-        <div className="flex gap-1.5 items-center">
+        <div className="flex gap-1 items-center">
           {Array.from({ length: 5 }).map((_, i) => (
             <img
               key={i}
               src={`${import.meta.env.BASE_URL}peon.jpeg`}
               alt="peon"
-              className="w-10 h-10 rounded object-cover"
+              className="w-8 h-8 rounded object-cover"
               style={{
                 opacity: i < ticket.complexityScore ? 1 : 0.15,
                 filter: i < ticket.complexityScore ? 'none' : 'grayscale(1)',
@@ -463,30 +463,6 @@ function ConfidencePanel({ ticket }: { ticket: Ticket }) {
             />
           ))}
         </div>
-      </div>
-
-      {/* Agent Readiness Breakdown */}
-      <div className="border-t border-border pt-3 mt-1">
-        <div className="text-[10px] text-text-tertiary uppercase tracking-wider mb-2">Agent Readiness</div>
-        {ticket.agents.map((agent, i) => (
-          <div key={i} className="flex items-center justify-between py-1">
-            <span className="text-[11px] text-text-secondary">{agent.agent}</span>
-            <div className="flex items-center gap-2">
-              <div className="w-16 h-1.5 bg-surface-3 rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full"
-                  style={{
-                    width: `${agent.readiness}%`,
-                    backgroundColor: getConfidenceColor(agent.readiness),
-                  }}
-                />
-              </div>
-              <span className="text-[10px] font-mono w-7 text-right" style={{ color: getConfidenceColor(agent.readiness) }}>
-                {agent.readiness}
-              </span>
-            </div>
-          </div>
-        ))}
       </div>
 
       {/* Human Input Required */}
