@@ -741,208 +741,211 @@ function MissionControlMockup() {
   )
 }
 
-function GardenMockup() {
+function Rubicon2Mockup() {
+  const sparkData = [42, 48, 45, 52, 58, 55, 62, 68, 72, 74]
+  const sparkline = (data: number[], color: string, w = 60, h = 20) => {
+    const max = Math.max(...data), min = Math.min(...data)
+    const pts = data.map((v, i) => `${i * (w / (data.length - 1))},${h - ((v - min) / (max - min || 1)) * h}`).join(' ')
+    return <svg width={w} height={h}><polyline points={pts} fill="none" stroke={color} strokeWidth={1} /></svg>
+  }
   return (
-    <div className="rounded-xl border border-border overflow-hidden bg-[#050508]">
-      <div className="px-4 py-2 bg-[#0a0f0a] border-b border-[#1a2a1a] flex items-center justify-between">
+    <div className="rounded-xl border border-border overflow-hidden bg-[#07070c]">
+      {/* Window chrome */}
+      <div className="px-4 py-2 bg-surface-1 border-b border-border flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-[12px]">🌱</span>
-          <span className="text-[10px] text-green-400/70 font-mono">Rubicon Garden — Sprint 14</span>
+          <div className="flex gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-red-500/60" /><div className="w-2.5 h-2.5 rounded-full bg-amber-500/60" /><div className="w-2.5 h-2.5 rounded-full bg-green-500/60" /></div>
+          <span className="text-[10px] text-text-tertiary font-mono">Rubicon 2.0 — Next Logical Action</span>
         </div>
-        <div className="flex items-center gap-3 text-[9px] text-green-400/40 font-mono">
-          <span>🌤️ Clear</span>
-          <span>💧 Hydrated</span>
-          <span>🌡️ 72°F</span>
+        <div className="flex items-center gap-3 text-[9px] text-text-tertiary font-mono">
+          <span>4 agents active</span>
+          <span>|</span>
+          <span>7 in queue</span>
+          <span>|</span>
+          <kbd className="px-1.5 py-0.5 rounded bg-surface-3 border border-border text-[8px]">Cmd+K</kbd>
         </div>
       </div>
-      <svg viewBox="0 0 1000 600" className="w-full" style={{ minHeight: 480 }}>
-        <defs>
-          <linearGradient id="nightsky" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#030308" />
-            <stop offset="60%" stopColor="#050810" />
-            <stop offset="100%" stopColor="#0a0f0a" />
-          </linearGradient>
-          <linearGradient id="soilgrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#1a1208" />
-            <stop offset="100%" stopColor="#0d0a04" />
-          </linearGradient>
-          <radialGradient id="moonlight" cx="85%" cy="10%" r="30%">
-            <stop offset="0%" stopColor="#1a1a3a" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="transparent" />
-          </radialGradient>
-          <filter id="plantglow"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-        </defs>
-        <rect width="1000" height="600" fill="url(#nightsky)" />
-        <rect width="1000" height="600" fill="url(#moonlight)" />
 
-        {/* Stars */}
-        {Array.from({length: 30}).map((_, i) => (
-          <circle key={`star${i}`} cx={50 + (i * 137) % 900} cy={10 + (i * 73) % 180} r={0.5 + (i % 3) * 0.3} fill="white" opacity={0.1 + (i % 4) * 0.05}>
-            <animate attributeName="opacity" values={`${0.1 + (i%4)*0.05};${0.3 + (i%3)*0.05};${0.1 + (i%4)*0.05}`} dur={`${3 + i % 4}s`} repeatCount="indefinite" />
-          </circle>
-        ))}
-
-        {/* Moon */}
-        <circle cx={850} cy={60} r={25} fill="#1a1a3a" opacity={0.4} />
-        <circle cx={855} cy={55} r={22} fill="#0a0a1a" />
-
-        {/* Ground */}
-        <rect x={0} y={400} width={1000} height={200} fill="url(#soilgrad)" />
-        <path d="M 0 400 Q 200 390 400 400 Q 600 410 800 398 Q 900 395 1000 400 L 1000 400 L 0 400" fill="#1a1a0a" stroke="#2d4a1a" strokeWidth={0.5} opacity={0.4} />
-
-        {/* Garden fence */}
-        {Array.from({length: 25}).map((_, i) => (
-          <g key={`fence${i}`}>
-            <rect x={i * 42 - 5} y={375} width={3} height={30} fill="#2a1a0a" rx={1} />
-            {i < 24 && <rect x={i * 42 - 5} y={382} width={42} height={2} fill="#2a1a0a" rx={1} />}
-          </g>
-        ))}
-
-        {/* BUG-892: WILTING THORN ROSE — critical, Contexta stage */}
-        <g transform="translate(100, 200)">
-          {/* Rain — Contexta investigating */}
-          {Array.from({length: 8}).map((_, j) => (
-            <line key={j} x1={-30 + j * 12} y1={-30} x2={-35 + j * 12} y2={-20} stroke="#a855f7" strokeWidth={0.6} opacity={0.35}>
-              <animate attributeName="y1" values="-40;200" dur={`${1.2 + j * 0.15}s`} repeatCount="indefinite" />
-              <animate attributeName="y2" values="-30;210" dur={`${1.2 + j * 0.15}s`} repeatCount="indefinite" />
-            </line>
+      <div className="flex" style={{ minHeight: 520 }}>
+        {/* LEFT: Enhanced Hotlist */}
+        <div className="w-80 border-r border-border bg-[#08080c] p-3 overflow-hidden">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] font-semibold text-text-primary">Hotlist</span>
+            <span className="text-[9px] text-text-tertiary font-mono">7 items</span>
+          </div>
+          {/* Live ticket cards with sparklines */}
+          {[
+            { id: 'BUG-892', title: 'Order sync multi-loc', sev: 'critical', pct: 28, trend: [15,18,20,22,25,24,28], color: '#ef4444' },
+            { id: 'BUG-901', title: 'Payment timeout', sev: 'critical', pct: 91, trend: [60,68,75,82,88,90,91], color: '#ef4444' },
+            { id: 'PF-1247', title: 'Bulk actions toolbar', sev: 'high', pct: 74, trend: [40,48,55,62,68,72,74], color: '#f59e0b' },
+            { id: 'PF-1251', title: 'Inventory alerts', sev: 'medium', pct: 82, trend: [50,55,62,70,75,80,82], color: '#3b82f6' },
+            { id: 'PF-1239', title: 'CSV export', sev: 'low', pct: 97, trend: [80,85,88,92,95,96,97], color: '#22c55e' },
+          ].map((t, idx) => (
+            <div key={t.id} className={`rounded-lg border p-2.5 mb-2 ${idx === 0 ? 'border-red-500/40 bg-red-500/5' : 'border-border/30 bg-surface-1/30'}`}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-mono font-semibold" style={{ color: t.color }}>{t.id}</span>
+                <span className="text-[8px] px-1 py-0.5 rounded uppercase" style={{ backgroundColor: `${t.color}15`, color: t.color }}>{t.sev}</span>
+              </div>
+              <div className="text-[10px] text-text-secondary mb-1.5">{t.title}</div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {sparkline(t.trend, t.color)}
+                  <span className="text-[10px] font-mono font-bold" style={{ color: t.color }}>{t.pct}%</span>
+                </div>
+                {/* Mini terminal last line */}
+                <div className="text-[7px] font-mono text-green-400/50 truncate max-w-20">
+                  {idx === 0 ? '$ investigating...' : idx === 1 ? '$ tests passing' : '$ building...'}
+                </div>
+              </div>
+            </div>
           ))}
-          {/* Stem — drooping */}
-          <path d="M 0,200 Q -5,150 -10,100 Q -12,70 -8,50 Q -5,30 -15,15" fill="none" stroke="#3d4a2a" strokeWidth={3} />
-          {/* Thorns */}
-          <line x1={-8} y1={100} x2={-18} y2={92} stroke="#5a3a2a" strokeWidth={1} />
-          <line x1={-10} y1={70} x2={0} y2={62} stroke="#5a3a2a" strokeWidth={1} />
-          {/* Wilting leaves */}
-          <ellipse cx={-22} cy={120} rx={12} ry={5} fill="#2a3a1a" opacity={0.6} transform="rotate(30, -22, 120)" />
-          <ellipse cx={5} cy={85} rx={10} ry={4} fill="#2a3a1a" opacity={0.5} transform="rotate(-20, 5, 85)" />
-          {/* Rose head — drooping */}
-          <circle cx={-15} cy={12} r={14} fill="#ef4444" opacity={0.5} />
-          <circle cx={-15} cy={12} r={10} fill="#ef4444" opacity={0.7} />
-          <circle cx={-15} cy={12} r={5} fill="#dc2626" />
-          {/* Wilting petals falling */}
-          <ellipse cx={-25} cy={35} rx={3} ry={2} fill="#ef4444" opacity={0.3} transform="rotate(45, -25, 35)">
-            <animate attributeName="cy" values="35;45" dur="4s" repeatCount="indefinite" />
-            <animate attributeName="opacity" values="0.3;0" dur="4s" repeatCount="indefinite" />
-          </ellipse>
-          {/* Labels */}
-          <text x={0} y={218} textAnchor="middle" fill="#ef4444" fontSize="11" fontFamily="monospace" fontWeight="600">BUG-892</text>
-          <text x={0} y={232} textAnchor="middle" fill="#ef4444" fontSize="9" opacity={0.7}>wilting — needs water</text>
-          <text x={0} y={245} textAnchor="middle" fill="#71717a" fontSize="8">28% confidence</text>
-          {/* Pulsing danger indicator */}
-          <circle cx={-15} cy={12} r={20} fill="none" stroke="#ef4444" strokeWidth={0.5} opacity={0.3}>
-            <animate attributeName="r" values="20;28;20" dur="2s" repeatCount="indefinite" />
-            <animate attributeName="opacity" values="0.3;0;0.3" dur="2s" repeatCount="indefinite" />
-          </circle>
-        </g>
+        </div>
 
-        {/* PF-1247: SUNFLOWER — high priority, Plana stage */}
-        <g transform="translate(300, 140)">
-          {/* Stem */}
-          <path d="M 0,260 Q 2,200 3,150 Q 4,100 2,50 Q 1,25 0,0" fill="none" stroke="#3d7a2a" strokeWidth={4} />
-          {/* Leaves */}
-          <ellipse cx={-22} cy={180} rx={18} ry={7} fill="#2d6a1a" transform="rotate(25, -22, 180)" />
-          <ellipse cx={20} cy={140} rx={16} ry={6} fill="#2d6a1a" transform="rotate(-20, 20, 140)" />
-          <ellipse cx={-18} cy={100} rx={14} ry={5} fill="#2d5a1a" transform="rotate(15, -18, 100)" />
-          {/* Flower head */}
-          {Array.from({length: 12}).map((_, j) => (
-            <ellipse key={j} cx={0} cy={-15} rx={5} ry={14} fill="#f59e0b" opacity={0.7} transform={`rotate(${j * 30}, 0, 0)`} />
+        {/* CENTER: Interactive Terminal + Impact Preview */}
+        <div className="flex-1 flex flex-col bg-[#06060a]">
+          {/* Terminal header */}
+          <div className="px-3 py-1.5 bg-surface-1/50 border-b border-border flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono text-red-400 font-semibold">BUG-892</span>
+              <span className="text-[10px] text-text-tertiary">Order sync — multi-location</span>
+            </div>
+            <div className="flex gap-1">
+              <span className="text-[8px] px-1.5 py-0.5 rounded bg-surface-3 text-text-tertiary">Terminal</span>
+              <span className="text-[8px] px-1.5 py-0.5 rounded bg-green-500/15 text-green-400">Impact Preview</span>
+            </div>
+          </div>
+          {/* Terminal content */}
+          <div className="flex-1 p-3 font-mono text-[10px] overflow-hidden">
+            <div className="text-green-400/80 mb-1">{'>'} contexta investigate BUG-892 --deep</div>
+            <div className="text-text-tertiary mb-0.5">Scanning order-sync-worker service...</div>
+            <div className="text-text-tertiary mb-0.5">Analyzing 847 orders across 23 multi-location retailers...</div>
+            <div className="text-text-tertiary mb-0.5">Cross-referencing with 3 similar incidents (BUG-801, BUG-756, BUG-689)...</div>
+            <div className="text-amber-400 mb-0.5">⚠ Pattern detected: all 3 prior incidents involved location-cache staleness</div>
+            <div className="text-text-tertiary mb-0.5">Inspecting cache layer: cache.Get("locations") in sync-worker.go:142</div>
+            <div className="text-green-400 font-semibold mb-2">✓ Root cause confirmed: location config loaded at worker startup, not per-request</div>
+            <div className="text-green-400/80 mb-1">{'>'} plana spec --ticket BUG-892 --approach cache-invalidation</div>
+            <div className="text-text-tertiary mb-0.5">Generating implementation plan...</div>
+            <div className="text-blue-400 mb-0.5">Plan: Subscribe to location.CRUD events via pub/sub, invalidate cache on change</div>
+            <div className="text-blue-400 mb-0.5">Files: sync-worker.go, location-cache.go (2 files, ~45 lines changed)</div>
+            <div className="text-blue-400 mb-2">Risk: LOW — cache invalidation pattern exists in notification-service</div>
+            <div className="text-green-400/80 mb-1">{'>'} bilda implement --plan BUG-892-cache-fix</div>
+            <div className="text-amber-400 mb-0.5">Building... porting pattern from notification-service/cache.go</div>
+            <div className="flex items-center gap-2 text-text-tertiary">
+              <span>Working</span>
+              <div className="flex gap-0.5">
+                <div className="w-1 h-1 rounded-full bg-amber-400 animate-pulse" />
+                <div className="w-1 h-1 rounded-full bg-amber-400 animate-pulse" style={{animationDelay:'0.15s'}} />
+                <div className="w-1 h-1 rounded-full bg-amber-400 animate-pulse" style={{animationDelay:'0.3s'}} />
+              </div>
+            </div>
+          </div>
+          {/* Input */}
+          <div className="px-3 py-2 border-t border-border flex items-center gap-2">
+            <span className="text-green-400 text-[10px] font-mono">{'>'}</span>
+            <div className="flex-1 text-[10px] text-text-tertiary font-mono">@qa prepare test matrix for cache invalidation fix</div>
+          </div>
+        </div>
+
+        {/* RIGHT: Enhanced Agent Panel + New Panels */}
+        <div className="w-72 border-l border-border bg-[#08080c] overflow-hidden">
+          {/* Agent Activity Feed */}
+          <div className="p-3 border-b border-border">
+            <div className="text-[9px] text-text-tertiary uppercase tracking-wider mb-2 font-mono">Live Agent Activity</div>
+            <div className="space-y-2">
+              {[
+                { agent: 'Contexta', color: '#a855f7', action: 'Root cause found', detail: 'Cache staleness in sync-worker', time: '2m' },
+                { agent: 'Plana', color: '#3b82f6', action: 'Plan generated', detail: 'Pub/sub cache invalidation', time: '1m' },
+                { agent: 'Bilda', color: '#f59e0b', action: 'Implementing...', detail: 'Porting pattern from notif-svc', time: 'now' },
+                { agent: 'Cannabiz', color: '#22c55e', action: 'Compliance alert', detail: 'Metrc divergence in CO, OR', time: '2m' },
+              ].map((a, i) => (
+                <div key={i} className="flex gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: a.color }} />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[9px] font-semibold" style={{ color: a.color }}>{a.agent}</span>
+                      <span className="text-[8px] text-text-tertiary">{a.time}</span>
+                    </div>
+                    <div className="text-[9px] text-text-secondary">{a.action}</div>
+                    <div className="text-[8px] text-text-tertiary truncate">{a.detail}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Impact Preview */}
+          <div className="p-3 border-b border-border">
+            <div className="text-[9px] text-text-tertiary uppercase tracking-wider mb-2 font-mono">Impact Preview</div>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-[9px]">
+                <span className="text-text-secondary">Files changed</span>
+                <span className="text-text-primary font-mono">2</span>
+              </div>
+              <div className="flex items-center justify-between text-[9px]">
+                <span className="text-text-secondary">Lines</span>
+                <span className="font-mono"><span className="text-green-400">+32</span> <span className="text-red-400">-8</span></span>
+              </div>
+              <div className="flex items-center justify-between text-[9px]">
+                <span className="text-text-secondary">Test coverage</span>
+                <span className="text-green-400 font-mono">+4.2%</span>
+              </div>
+              <div className="flex items-center justify-between text-[9px]">
+                <span className="text-text-secondary">Dependencies</span>
+                <span className="text-text-primary font-mono">0 new</span>
+              </div>
+            </div>
+          </div>
+          {/* New Expert Agents */}
+          <div className="p-3 border-b border-border">
+            <div className="text-[9px] text-text-tertiary uppercase tracking-wider mb-2 font-mono">Expert Agents (Expanded)</div>
+            <div className="space-y-1.5">
+              {[
+                { name: 'Security', color: '#ef4444', status: 'No OWASP issues', icon: '🛡' },
+                { name: 'Performance', color: '#f59e0b', status: 'Cache hit rate: 94%', icon: '⚡' },
+                { name: 'Customer Voice', color: '#8b5cf6', status: '12 related tickets', icon: '💬' },
+                { name: 'Cannabiz SME', color: '#22c55e', status: 'Metrc alert active', icon: '♦' },
+              ].map(a => (
+                <div key={a.name} className="flex items-center gap-2 rounded bg-surface-1/30 px-2 py-1.5">
+                  <span className="text-[10px]">{a.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[9px] font-semibold" style={{ color: a.color }}>{a.name}</span>
+                    <div className="text-[8px] text-text-tertiary truncate">{a.status}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Agent Memory */}
+          <div className="p-3">
+            <div className="text-[9px] text-text-tertiary uppercase tracking-wider mb-2 font-mono">Agent Memory</div>
+            <div className="space-y-1 text-[8px] text-text-tertiary">
+              <div className="flex gap-1"><span className="text-amber-400">●</span> location-cache caused 3 incidents in 90d</div>
+              <div className="flex gap-1"><span className="text-green-400">●</span> CO + OR Metrc validated last week</div>
+              <div className="flex gap-1"><span className="text-blue-400">●</span> pub/sub pattern used in 4 services</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom bar: Cmd+K suggestions */}
+      <div className="px-4 py-2 bg-surface-1 border-t border-border">
+        <div className="flex items-center gap-2 mb-1.5">
+          <kbd className="text-[8px] px-1.5 py-0.5 rounded bg-surface-3 border border-border text-text-tertiary">Cmd+K</kbd>
+          <span className="text-[9px] text-text-tertiary">Suggestions:</span>
+        </div>
+        <div className="flex gap-2">
+          {[
+            'BUG-892 and PF-1251 share root cause — merge investigations?',
+            'QA has 4 tickets — redistribute to balance load?',
+            'Sprint velocity: 3.2/day, on track for 4/20',
+          ].map((s, i) => (
+            <div key={i} className="text-[9px] px-2.5 py-1 rounded-lg bg-surface-2 border border-border text-text-tertiary cursor-pointer hover:text-text-secondary hover:border-border-bright transition-all">{s}</div>
           ))}
-          <circle cx={0} cy={0} r={12} fill="#92400e" />
-          <circle cx={0} cy={0} r={8} fill="#78350f" />
-          <text x={0} y={278} textAnchor="middle" fill="#f59e0b" fontSize="11" fontFamily="monospace" fontWeight="600">PF-1247</text>
-          <text x={0} y={292} textAnchor="middle" fill="#f59e0b" fontSize="9" opacity={0.7}>flowering</text>
-          <text x={0} y={305} textAnchor="middle" fill="#71717a" fontSize="8">74% confidence</text>
-        </g>
-
-        {/* PF-1251: HERB — medium, Bilda stage */}
-        <g transform="translate(480, 210)">
-          {/* Sunlight beams from Bilda */}
-          {Array.from({length: 5}).map((_, j) => (
-            <line key={j} x1={-20 + j * 12} y1={-60} x2={-15 + j * 10} y2={-30} stroke="#f59e0b" strokeWidth={0.8} opacity={0.15 + j * 0.03} />
-          ))}
-          <path d="M 0,190 Q 1,140 2,100 Q 3,60 0,20" fill="none" stroke="#3d7a2a" strokeWidth={3} />
-          <ellipse cx={-16} cy={120} rx={14} ry={6} fill="#2d6a1a" transform="rotate(20, -16, 120)" />
-          <ellipse cx={14} cy={80} rx={12} ry={5} fill="#2d6a1a" transform="rotate(-15, 14, 80)" />
-          <ellipse cx={-10} cy={50} rx={10} ry={4} fill="#2d5a1a" transform="rotate(10, -10, 50)" />
-          <circle cx={0} cy={12} r={10} fill="#3b82f6" opacity={0.6} />
-          <circle cx={0} cy={12} r={6} fill="#3b82f6" opacity={0.9} />
-          <text x={0} y={208} textAnchor="middle" fill="#3b82f6" fontSize="11" fontFamily="monospace" fontWeight="600">PF-1251</text>
-          <text x={0} y={222} textAnchor="middle" fill="#3b82f6" fontSize="9" opacity={0.7}>budding</text>
-          <text x={0} y={235} textAnchor="middle" fill="#71717a" fontSize="8">82% confidence</text>
-        </g>
-
-        {/* BUG-901: FRUIT TREE — critical, QA stage */}
-        <g transform="translate(660, 120)">
-          {/* Wind — QA testing */}
-          {Array.from({length: 6}).map((_, j) => (
-            <path key={j} d={`M ${-40 + j * 20},${30 + j * 15} Q ${-20 + j * 20},${25 + j * 15} ${j * 20},${30 + j * 15}`} fill="none" stroke="#06b6d4" strokeWidth={0.7} opacity={0.2}>
-              <animate attributeName="opacity" values="0.2;0.4;0.2" dur={`${2 + j * 0.3}s`} repeatCount="indefinite" />
-            </path>
-          ))}
-          <path d="M 0,280 Q 2,220 4,160 Q 5,100 3,50 Q 2,20 0,0" fill="none" stroke="#4d8a3a" strokeWidth={4.5} />
-          <path d="M 3,80 Q 20,60 35,50" fill="none" stroke="#4d8a3a" strokeWidth={2.5} />
-          <ellipse cx={40} cy={47} rx={14} ry={7} fill="#2d6a1a" />
-          <path d="M 4,130 Q -20,115 -30,105" fill="none" stroke="#4d8a3a" strokeWidth={2.5} />
-          <ellipse cx={-35} cy={102} rx={14} ry={7} fill="#2d6a1a" />
-          {/* Fruit */}
-          <circle cx={0} cy={-5} r={16} fill="#22c55e" opacity={0.7} filter="url(#plantglow)" />
-          <circle cx={0} cy={-5} r={10} fill="#22c55e" />
-          <text x={0} y={-2} textAnchor="middle" fill="#000" fontSize="8" fontWeight="bold">91</text>
-          {/* Small fruits */}
-          <circle cx={30} cy={40} r={6} fill="#22c55e" opacity={0.5} />
-          <circle cx={-25} cy={95} r={5} fill="#22c55e" opacity={0.4} />
-          <text x={0} y={298} textAnchor="middle" fill="#22c55e" fontSize="11" fontFamily="monospace" fontWeight="600">BUG-901</text>
-          <text x={0} y={312} textAnchor="middle" fill="#22c55e" fontSize="9" opacity={0.7}>fruiting — almost ripe</text>
-          <text x={0} y={325} textAnchor="middle" fill="#71717a" fontSize="8">91% confidence</text>
-        </g>
-
-        {/* PF-1239: HARVEST READY — glowing */}
-        <g transform="translate(850, 150)">
-          <path d="M 0,250 Q 1,190 2,130 Q 3,80 1,30 Q 0,10 0,-5" fill="none" stroke="#5aaa4a" strokeWidth={5} />
-          <path d="M 2,70 Q 25,50 40,45" fill="none" stroke="#5aaa4a" strokeWidth={3} />
-          <ellipse cx={46} cy={42} rx={16} ry={8} fill="#3d7a2a" />
-          <path d="M 1,120 Q -22,105 -35,100" fill="none" stroke="#5aaa4a" strokeWidth={3} />
-          <ellipse cx={-41} cy={97} rx={16} ry={8} fill="#3d7a2a" />
-          {/* Glowing harvest fruit */}
-          <circle cx={0} cy={-12} r={20} fill="#22c55e" opacity={0.3} filter="url(#plantglow)">
-            <animate attributeName="r" values="20;24;20" dur="3s" repeatCount="indefinite" />
-          </circle>
-          <circle cx={0} cy={-12} r={15} fill="#22c55e" opacity={0.8} />
-          <text x={0} y={-8} textAnchor="middle" fill="#000" fontSize="12" fontWeight="bold">✓</text>
-          <text x={0} y={268} textAnchor="middle" fill="#22c55e" fontSize="11" fontFamily="monospace" fontWeight="600">PF-1239</text>
-          <text x={0} y={282} textAnchor="middle" fill="#22c55e" fontSize="9">harvest ready!</text>
-          <text x={0} y={295} textAnchor="middle" fill="#22c55e" fontSize="8" opacity={0.6}>97% confidence</text>
-        </g>
-
-        {/* Greenhouse dome over compliance-sensitive tickets */}
-        <path d="M 60,400 Q 60,100 150,100 Q 240,100 240,400" fill="none" stroke="#22c55e" strokeWidth={0.5} opacity={0.15} strokeDasharray="4 3" />
-        <text x={150} y={115} textAnchor="middle" fill="#22c55e" fontSize="7" opacity={0.25}>🏠 compliance greenhouse</text>
-
-        {/* Harvest basket */}
-        <g transform="translate(20, 450)">
-          <rect width={960} height={80} rx={10} fill="#0d0a04" stroke="#22c55e" strokeWidth={0.3} opacity={0.6} />
-          <text x={20} y={22} fill="#22c55e" fontSize="10" fontFamily="monospace" opacity={0.5}>HARVEST BASKET — Sprint 14</text>
-          {Array.from({length: 12}).map((_, i) => (
-            <g key={`hb${i}`} transform={`translate(${20 + i * 78}, 32)`}>
-              <rect width={68} height={38} rx={4} fill={`hsl(${130 + i * 6}, 25%, ${8 + i * 0.5}%)`} stroke="#22c55e" strokeWidth={0.3} />
-              <text x={34} y={18} textAnchor="middle" fill="#22c55e" fontSize="8" fontFamily="monospace" opacity={0.5}>#{1220 + i}</text>
-              <text x={34} y={30} textAnchor="middle" fill="#52525b" fontSize="7">shipped</text>
-            </g>
-          ))}
-        </g>
-
-        {/* Weather legend */}
-        <g transform="translate(20, 560)">
-          <text x={0} y={0} fill="#52525b" fontSize="8" fontFamily="monospace">
-            🌧 = Contexta investigating | ☀️ = Bilda building | 💨 = QA testing | 🏠 = Compliance monitoring | 🌱→🌻→🍎→✓ = growth stages
-          </text>
-        </g>
-      </svg>
+        </div>
+      </div>
     </div>
   )
 }
 
-const departureMockups = [CanvasMockup, WarRoomMockup, MissionControlMockup, GardenMockup]
+const departureMockups = [CanvasMockup, WarRoomMockup, MissionControlMockup, Rubicon2Mockup]
 
 /* ============================================================
    AGENT REVIEW DIAGRAM — visual assessment per agent
@@ -980,7 +983,7 @@ function AgentRadar({ agent }: { agent: typeof reviewData.agents[0] }) {
    ============================================================ */
 
 export function AgentReview({ onBack }: AgentReviewProps) {
-  const [tab, setTab] = useState<Tab>('agents')
+  const [tab, setTab] = useState<Tab>('features')
   const [expandedAgent, setExpandedAgent] = useState<string | null>(reviewData.agents[0]?.name || null)
   const [expandedDeparture, setExpandedDeparture] = useState<number>(0)
 
@@ -1004,9 +1007,9 @@ export function AgentReview({ onBack }: AgentReviewProps) {
       <div className="max-w-7xl mx-auto px-6 pt-6">
         <div className="flex gap-1 bg-surface-1 rounded-lg p-1 w-fit">
           {([
-            { key: 'agents' as Tab, label: 'Agent Reviews', icon: Zap },
             { key: 'features' as Tab, label: `Feature Ideas (${reviewData.featureIdeas.length})`, icon: Lightbulb },
             { key: 'departures' as Tab, label: 'Design Departures (4)', icon: Compass },
+            { key: 'agents' as Tab, label: 'Agent Perspectives', icon: Zap },
           ]).map(t => (
             <button
               key={t.key}
