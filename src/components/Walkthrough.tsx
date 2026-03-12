@@ -281,6 +281,171 @@ function OutcomeVisual() {
   )
 }
 
+/* ── Finale: translucent prototype screen ─────────────── */
+
+function FinaleScreen() {
+  // A simplified, slightly translucent rendering of the main working prototype
+  const miniTickets = [
+    { id: 'BUG-901', title: 'Payment timeout >$5K', sev: 'critical', conf: 91 },
+    { id: 'BUG-892', title: 'Sync fails multi-location', sev: 'critical', conf: 28 },
+    { id: 'PF-1247', title: 'Bulk action toolbar', sev: 'high', conf: 74 },
+    { id: 'PF-1251', title: 'Real-time inventory alerts', sev: 'medium', conf: 82 },
+    { id: 'PF-1239', title: 'CSV export for sales', sev: 'low', conf: 95 },
+  ]
+  const termLines = [
+    { text: '❯ claude --ticket BUG-892 --stage contexta', c: '#4ade80' },
+    { text: '', c: '' },
+    { text: '◆ Contexta Agent — Investigating...', c: '#a855f7' },
+    { text: '  ✓ Queried Datadog: 847 orders stuck in pending', c: '#22c55e' },
+    { text: '  ✓ Root cause: stale location cache (TTL: 24h)', c: '#22c55e' },
+    { text: '  ✗ Missing: error logging in sync worker', c: '#ef4444' },
+    { text: '  ⚠ HUMAN INPUT NEEDED: Confirm cache TTL change', c: '#f59e0b' },
+    { text: '', c: '' },
+    { text: '⟡ thinking...', c: '#71717a' },
+    { text: '  ⚙ Read order-sync-worker.go', c: '#a855f7' },
+    { text: '  ↳ Found stale cache at L142: locationCache.Get(ctx, id)', c: '#71717a' },
+    { text: '  👻 VIOLATION — CO Metrc reports diverging across locations', c: '#ec4899' },
+  ]
+  const agents = [
+    { icon: '◆', name: 'Design Lead', role: 'VP Design', thought: 'Silent failures = critical UX debt', c: '#a855f7' },
+    { icon: '◇', name: 'QA Engineer', role: 'Quality', thought: 'Need 3-location test fixture', c: '#06b6d4' },
+    { icon: '⬡', name: 'SWE', role: 'Engineer', thought: 'Check TTL on location-resolver cache', c: '#3b82f6' },
+    { icon: '◈', name: 'Cannabiz SME', role: 'Industry', thought: 'Dispensaries losing $12K/day', c: '#f59e0b' },
+    { icon: '👻', name: 'Compliance Ghost', role: 'Regulatory', thought: '3 jurisdictions at violation risk', c: '#ec4899' },
+  ]
+  const sdlcStages = ['Contexta', 'Plana', 'Bilda', 'QA', 'Merge']
+
+  return (
+    <div className="w-full h-full flex flex-col bg-surface-0 rounded-xl border border-border overflow-hidden shadow-2xl">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-surface-1 shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded bg-accent-green flex items-center justify-center">
+            <span className="text-[8px] text-black font-bold">⚡</span>
+          </div>
+          <span className="text-[10px] font-semibold text-text-primary">Rubicon</span>
+          <span className="text-[8px] text-text-tertiary bg-surface-3 px-1 rounded">Next Logical Action</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[9px] font-mono text-text-tertiary">BUG-892</span>
+          <span className="text-[8px] px-1 py-0.5 rounded bg-accent-red/10 text-accent-red uppercase">critical</span>
+          <span className="text-[8px] px-1 py-0.5 rounded bg-pink-500/10 text-pink-400">👻 Violation Risk</span>
+          <span className="text-[10px] font-mono font-bold text-accent-red">28%</span>
+        </div>
+      </div>
+
+      {/* 3-column layout */}
+      <div className="flex-1 flex overflow-hidden min-h-0">
+        {/* Left: mini hotlist + stages */}
+        <div className="w-40 border-r border-border bg-surface-1 p-2 flex flex-col gap-2 shrink-0 overflow-hidden">
+          <div className="text-[7px] text-text-tertiary uppercase tracking-wider px-1">Hotlist</div>
+          {miniTickets.map(t => (
+            <div key={t.id} className={`flex items-center gap-1.5 px-1.5 py-1 rounded text-left ${t.id === 'BUG-892' ? 'bg-surface-3' : ''}`}>
+              <div className="w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: t.sev === 'critical' ? '#ef4444' : t.sev === 'high' ? '#f59e0b' : t.sev === 'medium' ? '#3b82f6' : '#22c55e' }} />
+              <div className="min-w-0 flex-1">
+                <div className="text-[7px] font-mono text-text-tertiary">{t.id}</div>
+                <div className="text-[8px] text-text-secondary truncate">{t.title}</div>
+              </div>
+              <span className="text-[7px] font-mono" style={{ color: t.conf >= 80 ? '#22c55e' : t.conf >= 50 ? '#f59e0b' : '#ef4444' }}>{t.conf}%</span>
+            </div>
+          ))}
+          <div className="border-t border-border pt-2 mt-1">
+            <div className="text-[7px] text-text-tertiary uppercase tracking-wider px-1 mb-1">SDLC Stage</div>
+            {sdlcStages.map((s, i) => (
+              <div key={s} className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded ${i === 0 ? 'bg-surface-3' : ''}`}>
+                <div className={`w-2 h-2 rounded-full flex items-center justify-center text-[5px] ${i === 0 ? 'bg-accent-green text-black' : i > 0 ? 'border border-surface-4' : ''}`}>
+                  {i === 0 ? '●' : ''}
+                </div>
+                <span className={`text-[8px] ${i === 0 ? 'text-accent-green font-medium' : 'text-text-tertiary'}`}>{s}</span>
+                {i === 0 && <span className="text-[6px] text-accent-green ml-auto">Active</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Center: terminal */}
+        <div className="flex-1 p-2 flex flex-col min-w-0">
+          <div className="flex-1 bg-terminal-bg rounded-lg border border-border overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between px-2 py-1 bg-surface-2 border-b border-border">
+              <div className="flex items-center gap-1.5">
+                <div className="flex gap-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-accent-red/70" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-accent-amber/70" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-accent-green/70" />
+                </div>
+                <span className="text-[8px] text-text-tertiary font-mono ml-1">claude — BUG-892 — Contexta</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-[7px] px-1 py-0.5 rounded bg-accent-purple/10 text-accent-purple border border-accent-purple/20">claude-opus-4-6</span>
+                <span className="text-[7px] px-1 py-0.5 rounded bg-accent-green/10 text-accent-green">● connected</span>
+              </div>
+            </div>
+            <div className="flex-1 p-2 font-mono text-[8px] leading-relaxed overflow-hidden">
+              {termLines.map((l, i) => (
+                <div key={i} className="min-h-[1em]" style={{ color: l.c || '#a1a1aa' }}>{l.text || '\u00A0'}</div>
+              ))}
+              <div className="mt-0.5">
+                <span className="text-terminal-green">❯</span> <span className="inline-block w-1 h-2.5 bg-accent-green animate-pulse" />
+              </div>
+            </div>
+            <div className="border-t border-border bg-surface-2/50 px-2 py-1">
+              <div className="flex items-center gap-1">
+                <span className="text-terminal-green text-[8px]">❯</span>
+                <span className="text-[8px] text-text-tertiary">Ask Claude about this ticket...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: agents + compliance + confidence */}
+        <div className="w-48 border-l border-border bg-surface-1 p-2 flex flex-col gap-2 shrink-0 overflow-hidden">
+          <div className="text-[7px] text-text-tertiary uppercase tracking-wider px-1">Expert Agents</div>
+          {agents.map(a => (
+            <div key={a.name} className="rounded border border-border bg-surface-2 p-1.5">
+              <div className="flex items-center gap-1">
+                <span style={{ color: a.c }} className="text-[9px]">{a.icon}</span>
+                <span className="text-[8px] font-medium text-text-primary">{a.name}</span>
+              </div>
+              <div className="text-[7px] text-text-secondary mt-0.5 leading-tight">"{a.thought}"</div>
+            </div>
+          ))}
+          {/* Compliance mini panel */}
+          <div className="rounded border border-accent-red/30 bg-accent-red/5 p-1.5 mt-1">
+            <div className="flex items-center gap-1 mb-1">
+              <span className="text-[9px]">👻</span>
+              <span className="text-[7px] text-text-tertiary uppercase">Compliance Ghost</span>
+              <span className="text-[6px] text-accent-red ml-auto">ACTIVE RISK</span>
+            </div>
+            <div className="text-[7px] text-accent-red">CO: Metrc divergence</div>
+            <div className="text-[7px] text-accent-red">OR: Unsynced orders</div>
+            <div className="text-[7px] text-accent-amber">CA: Inventory mismatch</div>
+          </div>
+          {/* Confidence */}
+          <div className="rounded border border-border bg-surface-2 p-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[7px] text-text-tertiary">Confidence</span>
+              <span className="text-[9px] font-mono font-bold text-accent-red">28%</span>
+            </div>
+            <div className="h-1 bg-surface-3 rounded-full overflow-hidden mt-1">
+              <div className="h-full rounded-full bg-accent-red" style={{ width: '28%' }} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom bar */}
+      <div className="px-3 py-1 border-t border-border bg-surface-1 flex items-center justify-between text-[8px] text-text-tertiary shrink-0">
+        <span>Why Rubicon? →</span>
+        <div className="flex items-center gap-3">
+          <span>Stage: Contexta</span>
+          <span>Assignee: Unassigned</span>
+          <span>4h ago</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /* ── Main Walkthrough ─────────────────────────────────── */
 
 export function Walkthrough({ onClose, musicSrc, autoStart }: WalkthroughProps) {
@@ -290,6 +455,8 @@ export function Walkthrough({ onClose, musicSrc, autoStart }: WalkthroughProps) 
   const [isMuted, setIsMuted] = useState(false)
   const [slideProgress, setSlideProgress] = useState(0)
   const [transitioning, setTransitioning] = useState(false)
+  const [showFinale, setShowFinale] = useState(false)
+  const [finaleOpacity, setFinaleOpacity] = useState(0)
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const slideStartRef = useRef(Date.now())
@@ -308,22 +475,24 @@ export function Walkthrough({ onClose, musicSrc, autoStart }: WalkthroughProps) 
     })
   }, [])
 
-  // Gradual music fadeout over ~3 seconds
+  // Gradual music fadeout over ~10 seconds
   const fadeOutMusic = useCallback(() => {
     const el = audioRef.current
     if (!el) return
     if (fadeOutRef.current) clearInterval(fadeOutRef.current)
-    const steps = 30
-    const stepDuration = 100 // 3s total
+    const steps = 100
+    const stepDuration = 100 // 10s total
     let step = 0
     const startVol = el.volume
     fadeOutRef.current = window.setInterval(() => {
       step++
-      el.volume = Math.max(0, startVol * (1 - step / steps))
+      // Ease-out curve for natural fade
+      const t = step / steps
+      el.volume = Math.max(0, startVol * (1 - t * t))
       if (step >= steps) {
         if (fadeOutRef.current) clearInterval(fadeOutRef.current)
         el.pause()
-        el.volume = 0.35 // reset for potential replay
+        el.volume = 0.35
       }
     }, stepDuration)
   }, [])
@@ -366,8 +535,13 @@ export function Walkthrough({ onClose, musicSrc, autoStart }: WalkthroughProps) 
     const timer = setTimeout(() => {
       if (currentSlide < slides.length - 1) nextSlide()
       else {
+        // Enter finale: show translucent app screen while music fades
+        setShowFinale(true)
+        setFinaleOpacity(0)
         fadeOutMusic()
         setIsPlaying(false)
+        // Animate finale opacity in over 2s
+        requestAnimationFrame(() => setFinaleOpacity(1))
       }
     }, dur)
     const prog = setInterval(() => {
@@ -439,7 +613,7 @@ export function Walkthrough({ onClose, musicSrc, autoStart }: WalkthroughProps) 
       )}
 
       {/* WALKTHROUGH CONTENT (behind splash until started) */}
-      {started && (
+      {started && !showFinale && (
         <>
           <button onClick={onClose} className="absolute top-4 right-4 z-50 w-10 h-10 rounded-full bg-surface-2 border border-border flex items-center justify-center text-text-tertiary hover:text-text-primary cursor-pointer">
             <X size={18} />
@@ -495,6 +669,36 @@ export function Walkthrough({ onClose, musicSrc, autoStart }: WalkthroughProps) 
             </div>
           </div>
         </>
+      )}
+
+      {/* FINALE: translucent prototype screen with music fadeout */}
+      {showFinale && (
+        <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-surface-0">
+          <button onClick={onClose} className="absolute top-4 right-4 z-50 w-10 h-10 rounded-full bg-surface-2 border border-border flex items-center justify-center text-text-tertiary hover:text-text-primary cursor-pointer">
+            <X size={18} />
+          </button>
+          <div
+            className="w-[85vw] h-[75vh] max-w-[1200px]"
+            style={{
+              opacity: finaleOpacity * 0.7,
+              transition: 'opacity 2s ease-in',
+            }}
+          >
+            <FinaleScreen />
+          </div>
+          <div
+            className="mt-6 text-center"
+            style={{ opacity: finaleOpacity, transition: 'opacity 3s ease-in 1s' }}
+          >
+            <p className="text-[16px] text-text-secondary">This is Rubicon.</p>
+            <button
+              onClick={onClose}
+              className="mt-4 text-[13px] bg-accent-green text-surface-0 px-6 py-2.5 rounded-md font-medium hover:bg-accent-green-dim transition-colors border-none cursor-pointer"
+            >
+              Try it now →
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )

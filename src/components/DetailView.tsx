@@ -297,54 +297,122 @@ function AgentPanel({ ticket }: { ticket: Ticket }) {
     },
   ]
 
-  const [expandedAgent, setExpandedAgent] = useState<string | null>(agents[0]?.id || null)
+  // Default to Cannabiz SME — the most contextually rich agent for this domain
+  const cannabizIdx = agents.findIndex(a => a.id === 'cannabiz-sme')
+  const defaultAgent = cannabizIdx >= 0 ? agents[cannabizIdx].id : agents[0]?.id || null
+  const [expandedAgent, setExpandedAgent] = useState<string | null>(defaultAgent)
+  const [streamMode, setStreamMode] = useState(false)
+
+  // Thought stream: shows all agents' thoughts interleaved chronologically
+  const allThoughts = agents.flatMap(a =>
+    a.thoughts.map((t, i) => ({ agentId: a.id, agent: a.name, icon: a.icon, color: a.color, text: t, order: i }))
+  ).sort((a, b) => a.order - b.order)
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="text-[10px] text-text-tertiary uppercase tracking-wider px-1">Expert Agents</div>
-      {agents.map((agent) => (
-        <div
-          key={agent.id}
-          className={`rounded-lg border transition-all duration-150 cursor-pointer ${
-            expandedAgent === agent.id
-              ? 'bg-surface-2 border-border-bright'
-              : 'bg-surface-1 border-border hover:border-border-bright'
-          }`}
-          onClick={() => setExpandedAgent(expandedAgent === agent.id ? null : agent.id)}
+      <div className="flex items-center justify-between px-1">
+        <div className="text-[10px] text-text-tertiary uppercase tracking-wider">Expert Agents</div>
+        <button
+          onClick={() => setStreamMode(!streamMode)}
+          className="text-[9px] px-1.5 py-0.5 rounded border transition-colors cursor-pointer bg-transparent"
+          style={{
+            borderColor: streamMode ? '#22c55e40' : '#27272a',
+            color: streamMode ? '#22c55e' : '#71717a',
+          }}
         >
-          <div className="flex items-center gap-2 px-3 py-2">
-            <span style={{ color: agent.color }} className="text-[14px]">{agent.icon}</span>
-            <div className="flex-1">
-              <div className="text-[12px] font-medium text-text-primary">{agent.name}</div>
-              <div className="text-[10px] text-text-tertiary">{agent.role}</div>
-            </div>
-            <ChevronRight
-              size={12}
-              className={`text-text-tertiary transition-transform duration-150 ${
-                expandedAgent === agent.id ? 'rotate-90' : ''
-              }`}
-            />
-          </div>
-          {expandedAgent === agent.id && (
-            <div className="px-3 pb-3 border-t border-border mt-0">
-              <div className="flex flex-col gap-1.5 mt-2">
-                {agent.thoughts.map((thought, i) => (
+          {streamMode ? '◉ Stream' : '☰ Panel'}
+        </button>
+      </div>
+
+      {streamMode ? (
+        /* Thought Stream Mode — inspired by review doc's Agent Thought Stream concept */
+        <div className="rounded-lg border border-border bg-surface-2 p-2 overflow-y-auto">
+          <div className="relative">
+            <div className="absolute left-[11px] top-2 bottom-2 w-px bg-border" />
+            <div className="flex flex-col gap-2">
+              {allThoughts.map((t, i) => (
+                <div key={i} className="flex gap-2 relative animate-fade-in-up" style={{ animationDelay: `${i * 60}ms` }}>
                   <div
-                    key={i}
-                    className="text-[11px] text-text-secondary leading-relaxed pl-2 border-l-2 animate-fade-in-up"
-                    style={{
-                      borderColor: `${agent.color}40`,
-                      animationDelay: `${i * 80}ms`,
-                    }}
+                    className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-[10px] z-10 border"
+                    style={{ backgroundColor: `${t.color}15`, borderColor: `${t.color}40`, color: t.color }}
                   >
-                    {thought}
+                    {t.icon}
                   </div>
-                ))}
+                  <div className="flex-1 rounded bg-surface-1 border border-border p-2" style={{ borderLeftColor: t.color, borderLeftWidth: 2 }}>
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="text-[10px] font-semibold" style={{ color: t.color }}>{t.agent}</span>
+                      <span className="text-[8px] text-text-tertiary font-mono">{t.order * 3}s ago</span>
+                    </div>
+                    <div className="text-[11px] text-text-secondary leading-relaxed">{t.text}</div>
+                  </div>
+                </div>
+              ))}
+              {/* Typing indicator */}
+              <div className="flex gap-2 relative">
+                <div className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-[10px] z-10 border opacity-50" style={{ backgroundColor: '#06b6d415', borderColor: '#06b6d440', color: '#06b6d4' }}>◇</div>
+                <div className="flex-1 rounded bg-surface-1 border border-border p-2 opacity-40">
+                  <span className="text-[10px] font-semibold text-[#06b6d4]">QA</span>
+                  <div className="flex gap-1 mt-1">
+                    <div className="w-1 h-1 rounded-full bg-text-tertiary animate-pulse" />
+                    <div className="w-1 h-1 rounded-full bg-text-tertiary animate-pulse" style={{ animationDelay: '0.2s' }} />
+                    <div className="w-1 h-1 rounded-full bg-text-tertiary animate-pulse" style={{ animationDelay: '0.4s' }} />
+                  </div>
+                </div>
               </div>
             </div>
-          )}
+          </div>
         </div>
-      ))}
+      ) : (
+        /* Panel Mode — individual agent cards */
+        <>
+          {agents.map((agent) => (
+            <div
+              key={agent.id}
+              className={`rounded-lg border transition-all duration-150 cursor-pointer ${
+                expandedAgent === agent.id
+                  ? 'bg-surface-2 border-border-bright'
+                  : 'bg-surface-1 border-border hover:border-border-bright'
+              }`}
+              onClick={() => setExpandedAgent(expandedAgent === agent.id ? null : agent.id)}
+            >
+              <div className="flex items-center gap-2 px-3 py-2">
+                <span style={{ color: agent.color }} className="text-[14px]">{agent.icon}</span>
+                <div className="flex-1">
+                  <div className="text-[12px] font-medium text-text-primary">{agent.name}</div>
+                  <div className="text-[10px] text-text-tertiary">{agent.role}</div>
+                </div>
+                {expandedAgent !== agent.id && (
+                  <span className="text-[9px] text-text-tertiary truncate max-w-[80px]">{agent.thoughts[0]?.slice(0, 30)}...</span>
+                )}
+                <ChevronRight
+                  size={12}
+                  className={`text-text-tertiary transition-transform duration-150 shrink-0 ${
+                    expandedAgent === agent.id ? 'rotate-90' : ''
+                  }`}
+                />
+              </div>
+              {expandedAgent === agent.id && (
+                <div className="px-3 pb-3 border-t border-border mt-0">
+                  <div className="flex flex-col gap-1.5 mt-2">
+                    {agent.thoughts.map((thought, i) => (
+                      <div
+                        key={i}
+                        className="text-[11px] text-text-secondary leading-relaxed pl-2 border-l-2 animate-fade-in-up"
+                        style={{
+                          borderColor: `${agent.color}40`,
+                          animationDelay: `${i * 80}ms`,
+                        }}
+                      >
+                        {thought}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </>
+      )}
     </div>
   )
 }
