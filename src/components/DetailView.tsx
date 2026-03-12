@@ -295,13 +295,13 @@ function ConfidencePanel({ ticket }: { ticket: Ticket }) {
             {ticket.complexityScore}/5
           </span>
         </div>
-        <div className="flex gap-1 items-center">
+        <div className="flex gap-1.5 items-center">
           {Array.from({ length: 5 }).map((_, i) => (
             <img
               key={i}
               src={`${import.meta.env.BASE_URL}peon.jpeg`}
               alt="peon"
-              className="w-6 h-6 rounded-sm object-cover"
+              className="w-10 h-10 rounded object-cover"
               style={{
                 opacity: i < ticket.complexityScore ? 1 : 0.15,
                 filter: i < ticket.complexityScore ? 'none' : 'grayscale(1)',
